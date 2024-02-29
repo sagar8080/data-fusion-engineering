@@ -16,7 +16,7 @@ dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /nores
 
 wsl --set-default-version 2
 ```
-- For a more detailed answer you can follow this [!LINK](https://learn.microsoft.com/en-us/windows/wsl/install)
+- For a more detailed answer you can follow this [LINK](https://learn.microsoft.com/en-us/windows/wsl/install)
 
 ### Step 2: Install Ubuntu 20.04 from Microsoft Store
 - Open Microsoft Store.
