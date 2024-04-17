@@ -30,8 +30,11 @@ def fetch_last_offset(table_id):
     LIMIT 1
     """
     results = bq_client.query(query).result()
-    offset = int(list(results)[0]["last_offset_fetched"])
-    return offset
+    try:
+        offset = int(list(results)[0]["last_offset_fetched"])
+        return offset
+    except IndexError:
+        return 0
 
 
 def fetch_data(last_offset):
@@ -66,8 +69,8 @@ def upload_to_gcs(data):
 
 
 def get_table_id():
-    dataset_name = "df_prod"
-    table_name = "df_process_catalog_prod"
+    dataset_name = "data_catalog"
+    table_name = "df_process_catalog"
     dataset_id = f"{bq_client.project}.{dataset_name}"
     dataset = bigquery.Dataset(dataset_id)
     table_id = f"{bq_client.project}.{dataset.dataset_id}.{table_name}"
@@ -113,6 +116,8 @@ def execute(request):
             "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
         store_func_state(table_id, function_state)
+        bq_client.close()
+        storage_client.close()
         return "Completed fetching and processing"
     except Exception as e:
         print(e)
