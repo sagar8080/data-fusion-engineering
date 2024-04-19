@@ -9,7 +9,7 @@ from google.cloud import storage, bigquery
 bq_client = bigquery.Client()
 storage_client = storage.Client()
 LIMIT = 200000
-PROCESS_NAME = "df-ingest-traffic-data"
+PROCESS_NAME = "df-ingest-person-data"
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -32,7 +32,7 @@ def fetch_last_offset(table_id):
 
 
 def fetch_data(last_offset):
-    api_url = f"https://data.cityofnewyork.us/resource/i4gi-tjb9.json?$order=id,data_as_of&$limit={LIMIT}&$offset={last_offset}"
+    api_url = f"https://data.cityofnewyork.us/resource/h9gi-nx95.json?$order=id,data_as_of&$limit={LIMIT}&$offset={last_offset}"
     response = requests.get(api_url)
     if response.status_code == 200:
         try:
