@@ -12,14 +12,10 @@ LIMIT = 200000
 PROCESS_NAME = "df-ingest-person-data"
 
 
-class DateTimeEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime.datetime):
-            return obj.isoformat()
-        return super().default(obj)
-
-
 def fetch_last_offset(table_id):
+    """
+    Fetches the last offset from BIGQUERY dataset which the data
+    """
     query = f"""
     SELECT last_offset_fetched FROM `{table_id}`
     where process_name='{PROCESS_NAME}' and process_status='Success'
@@ -27,12 +23,16 @@ def fetch_last_offset(table_id):
     LIMIT 1
     """
     results = bq_client.query(query).result()
-    offset = int(list(results)[0]["last_offset_fetched"])
-    return offset
+    try:
+        offset = int(list(results)[0]["last_offset_fetched"])
+        return offset
+    except IndexError:
+        return 0
 
 
 def fetch_data(last_offset):
-    api_url = f"https://data.cityofnewyork.us/resource/h9gi-nx95.json?$order=id,data_as_of&$limit={LIMIT}&$offset={last_offset}"
+    base_url = "https://data.cityofnewyork.us/resource/f55k-p6yu.json"
+    api_url = base_url + f"?$order=crash_date,crash_time&$limit={LIMIT}&$offset={last_offset}"
     response = requests.get(api_url)
     if response.status_code == 200:
         try:
@@ -48,8 +48,8 @@ def fetch_data(last_offset):
 def upload_to_gcs(data):
     current_day = datetime.date.today()
     current_timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    file_path = f"data/pre-processed/traffic_data/{current_day}"
-    file_name = f"traffic_data_{current_timestamp}.json"
+    file_path = f"data/pre-processed/persons_data/{current_day}"
+    file_name = f"persons_data_{current_timestamp}.json"
     try:
         data_bytes = bytes(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         bucket = storage_client.bucket("df-landing-zone")
@@ -60,8 +60,8 @@ def upload_to_gcs(data):
 
 
 def get_table_id():
-    dataset_name = "test_dataset"
-    table_name = "test_table"
+    dataset_name = "data_catalog"
+    table_name = "df_process_catalog"
     dataset_id = f"{bq_client.project}.{dataset_name}"
     dataset = bigquery.Dataset(dataset_id)
     table_id = f"{bq_client.project}.{dataset.dataset_id}.{table_name}"
@@ -80,29 +80,33 @@ def store_func_state(table_id, state_json):
 
 @functions_framework.http
 def execute(request):
-    start_timestamp = datetime.datetime.now()
-    table_id = get_table_id()
-    last_offset = fetch_last_offset(table_id)
-    data = fetch_data(last_offset)
-    state = None
-    if data:
-        try:
-            upload_to_gcs(data)
-            state = "Success"
-        except Exception as e:
-            print(e)
-            state = "Failed"
-    else:
-        state = "Error"
-    end_timestamp = datetime.datetime.now()
-    time_taken = end_timestamp - start_timestamp
-    function_state = {
-        "process_name": PROCESS_NAME,
-        "process_status": state,
-        "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-        "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-        "time_taken": round(time_taken.seconds, 3),
-        "last_offset_fetched": last_offset + LIMIT,
-        "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    store_func_state(table_id, function_state)
+    try:
+        start_timestamp = datetime.datetime.now()
+        table_id = get_table_id()
+        last_offset = fetch_last_offset(table_id)
+        data = fetch_data(last_offset)
+        state = "Started"
+        if data:
+            try:
+                upload_to_gcs(data)
+                state = "Success"
+            except Exception as e:
+                print(e)
+                state = "Failed"
+        else:
+            state = "Error"
+        end_timestamp = datetime.datetime.now()
+        time_taken = end_timestamp - start_timestamp
+        function_state = {
+            "process_name": PROCESS_NAME,
+            "process_status": state,
+            "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "time_taken": round(time_taken.seconds, 3),
+            "last_offset_fetched": last_offset + LIMIT,
+            "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        store_func_state(table_id, function_state)
+    except Exception as e:
+        print(e)
+    return state

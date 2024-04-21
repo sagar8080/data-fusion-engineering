@@ -1,6 +1,7 @@
 import requests
 import json
 import datetime
+import time
 
 import functions_framework
 from google.cloud import storage, bigquery
@@ -12,16 +13,9 @@ LIMIT = 200000
 PROCESS_NAME = "df-ingest-traffic-data"
 
 
-class DateTimeEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime.datetime):
-            return obj.isoformat()
-        return super().default(obj)
-
-
 def fetch_last_offset(table_id):
     """
-    Fetches the last offset from BIGQUERY dataset which the data 
+    Fetches the last offset from BIGQUERY dataset which the data
     """
     query = f"""
     SELECT last_offset_fetched FROM `{table_id}`
@@ -94,7 +88,7 @@ def execute(request):
         table_id = get_table_id()
         last_offset = fetch_last_offset(table_id)
         data = fetch_data(last_offset)
-        state = None
+        state = "Started"
         if data:
             try:
                 upload_to_gcs(data)
@@ -118,7 +112,6 @@ def execute(request):
         store_func_state(table_id, function_state)
         bq_client.close()
         storage_client.close()
-        return "Completed fetching and processing"
     except Exception as e:
         print(e)
-        return "Unable to fetch, process and run"
+    return state
