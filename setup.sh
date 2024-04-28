@@ -13,16 +13,16 @@ check_and_install_gcloud() {
         echo "Google Cloud CLI is already installed."
     else
         read -p "Google Cloud CLI is not installed. Install now? (y/n) " yn
-        case $yn in
-            [Yy]*) 
+        if [[ "$yn" == [Yy]* ]]; then 
             install_gcloud
             create_service_account
             check_and_setup_app_default_login
-            ;;
-            *) echo "Skipping Google Cloud CLI installation.";;
-        esac
+        else
+            echo "Skipping Google Cloud CLI installation."
+        fi
     fi
 }
+
 
 install_gcloud() {
     echo "Installing Google Cloud CLI"
@@ -68,9 +68,13 @@ create_service_account() {
 
 
 export_tf_variables() {
+    CONFIG_PATH="utils/config.json"
     export TF_VAR_project_id="${PROJECT_ID}"
     export TF_VAR_credentials_file_path="${HOME}/${SERVICE_ACCOUNT_NAME}-key.json"
     export TF_VAR_service_account_email="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+    export TF_VAR_landing_bucket=$(jq -r '.landing_bucket' "$CONFIG_PATH")
+    export TF_VAR_code_bucket=$(jq -r '.code_bucket' "$CONFIG_PATH")
+    export TF_VAR_dataproc_bucket=$(jq -r '.dataproc_bucket' "$CONFIG_PATH")
 }
 
 check_and_install_terraform() {
@@ -122,8 +126,11 @@ destroy_resources() {
 }
 
 install_python() {
-    echo "Installing Python 3.8..."
-    sudo apt-get update && sudo apt-get install python3.8 -y
+    echo "Installing Python 3.10"
+    sudo apt install software-properties-common
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt update
+    sudo apt install python3.10
     sudo apt-get install python3-pip
     sudo apt-get install build-essential libssl-dev libffi-dev python-dev
     alias python=python3
@@ -148,20 +155,16 @@ create_virtualenv() {
 
 check_and_setup_python_env() {
     read -p "Is Python and virtual environment set up? (y/n) " yn
-    case $yn in
-        [Yy]*)
-            read -p "Enter the subpath from root to your virtual environment: " venv_path
-            . ~/$venv_path/bin/activate
-            pip list
-            ;;
-        *)
-            install_python
-            install_virtualenv
-            create_virtualenv
-            ;;
-    esac
+    if [[ "$yn" == [Yy]* ]]; then
+        read -p "Enter the subpath from root to your virtual environment: " venv_path
+        . ~/"$venv_path"/bin/activate
+        pip list
+    else
+        install_python
+        install_virtualenv
+        create_virtualenv
+    fi
 }
-
 
 check_and_install_dependencies() {
     read -p "Are all Python dependencies installed? (y/n) " yn
@@ -180,23 +183,44 @@ create_infra() {
 
 run_terraform() {
     echo "Setting environment variables for Terraform"
-
-    # read -p "Enter the path to your service account credentials file: " credentials_file
-
     echo "Initializing and applying Terraform configuration..."
     terraform init
     terraform plan
     terraform apply -auto-approve
 }
 
+# install json reader for WSL to read config file
+sudo apt install jq
 
+# check the installation of gcloud CLI 
+# if gcloud cli is not installed, install it
 check_and_install_gcloud
+
+# setup service accounts and app-default login to seamlessly connect w google cloud
 check_and_setup_app_default_login
 create_service_account
+
+# check if python3.8 and virtualenv is installed on the system or not; if not install it
 check_and_setup_python_env
+
+# install dependencies from requirements.txt file
 check_and_install_dependencies
+
+# create bigquery datasets, tables, GCS buckets, generate global config, 
+# write config to each CFN location, zip and upload CFN code to GCS code bucket dynamically
 create_infra
+
+# check if terraform is installed or not; if not then install it
 check_and_install_terraform
+
+# export important environment variables for terraform to work
 export_tf_variables
+
+# destroy existing resources if any
 destroy_resources
+
+# create cloud functions and cloud schedulers for each of the APIS
 run_terraform
+
+# remove pycache and .pyc files if generated
+find . | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf
