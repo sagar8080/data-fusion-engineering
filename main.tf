@@ -5,7 +5,6 @@ provider "google" {
   region  = var.region
 }
 
-
 # Create Cloud Functions
 resource "google_cloudfunctions2_function" "function" {
   for_each = {
@@ -45,7 +44,7 @@ resource "google_cloudfunctions2_function" "function" {
     entry_point   = "execute"
     source {
       storage_source {
-        bucket  = "df-code-bucket"
+        bucket  = var.code_bucket
         object  = each.value.script_object
       }
     }
@@ -54,9 +53,9 @@ resource "google_cloudfunctions2_function" "function" {
   service_config {
     max_instance_count  = 1
     min_instance_count  = 1
-    available_memory    = "2048M"
+    available_memory    = "1024M"
     timeout_seconds     = 1000
-    ingress_settings   = "ALLOW_ALL"
+    ingress_settings    = "ALLOW_ALL"
     all_traffic_on_latest_revision = true
     service_account_email = var.service_account_email
   }
@@ -68,7 +67,7 @@ resource "google_cloud_scheduler_job" "invoke_cloud_function" {
 
   name           = each.key
   description    = format("Schedule the HTTPS trigger for cloud function '%s'", each.value.name)
-  schedule       = "*/5 21-21 * * *"
+  schedule       = var.cloud_function_schedule
   project        = google_cloudfunctions2_function.function[each.key].project
   region         = google_cloudfunctions2_function.function[each.key].location
   time_zone      = "America/New_York"
