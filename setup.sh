@@ -147,7 +147,7 @@ install_virtualenv() {
 create_virtualenv() {
     echo "Creating a new virtual environment..."
     cd $HOME
-    virtualenv .venv -p python3.8
+    virtualenv .venv -p python3.10
     alias activate_venv="source ~/.venv/bin/activate"
     echo "subpath from root: .venv"
 }
