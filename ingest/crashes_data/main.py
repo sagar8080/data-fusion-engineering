@@ -8,10 +8,13 @@ from google.cloud import storage, bigquery
 
 bq_client = bigquery.Client()
 storage_client = storage.Client()
+f = open("config.json", "r")
 
 LIMIT = 200000
 PROCESS_NAME = "df-ingest-collision-data"
-
+config = json.loads(f.read())
+LANDING_BUCKET = config["landing_bucket"]
+CATALOG_TABLE_ID = config["catalog_table"]
 
 def fetch_last_offset(table_id):
     """
@@ -70,20 +73,12 @@ def upload_to_gcs(data):
     file_name = f"collision_data_{current_timestamp}.json"
     try:
         data_bytes = bytes(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        bucket = storage_client.bucket("df-landing-zone")
+        bucket = storage_client.bucket(LANDING_BUCKET)
         blob = bucket.blob(f"{file_path}/{file_name}")
         blob.upload_from_string(data_bytes)
     except Exception as e:
         print(f"Storage error: {e}")
 
-
-def get_table_id():
-    dataset_name = "data_catalog"
-    table_name = "df_process_catalog"
-    dataset_id = f"{bq_client.project}.{dataset_name}"
-    dataset = bigquery.Dataset(dataset_id)
-    table_id = f"{bq_client.project}.{dataset.dataset_id}.{table_name}"
-    return table_id
 
 
 def store_func_state(table_id, state_json):
@@ -109,8 +104,7 @@ def store_func_state(table_id, state_json):
 def execute(request):
     try:
         start_timestamp = datetime.datetime.now()
-        table_id = get_table_id()
-        last_offset = fetch_last_offset(table_id)
+        last_offset = fetch_last_offset(CATALOG_TABLE_ID)
         data = fetch_data(last_offset)
         state = None
 
@@ -135,7 +129,7 @@ def execute(request):
             "last_offset_fetched": last_offset + LIMIT,
             "insert_ts": datetime.datetime.now().isoformat(),
         }
-        store_func_state(table_id, function_state)
+        store_func_state(CATALOG_TABLE_ID, function_state)
     except Exception as e:
         print(e)
     return state
