@@ -40,7 +40,7 @@ def get_dates(input_date):
         end_date = start_date + datetime.timedelta(days=DAY_DELTA)
     elif isinstance(input_date, datetime.datetime):
         end_date = input_date + datetime.timedelta(days=DAY_DELTA)
-    start_date = input_date.strftime("%Y-%m-%d")
+    start_date = start_date.strftime("%Y-%m-%d")
     end_date = end_date.strftime("%Y-%m-%d")
     return start_date, end_date
 
@@ -55,7 +55,7 @@ def fetch_last_offset(table_id):
     results = bq_client.query(query).result()
     try:
         offset = list(results)[0]["last_timestamp_loaded"]
-        return offset
+        return offset if offset else DEFAULT_DATE
     except IndexError:
         return DEFAULT_DATE
 
