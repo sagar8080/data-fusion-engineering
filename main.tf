@@ -9,29 +9,40 @@ provider "google" {
 resource "google_cloudfunctions2_function" "function" {
   for_each = {
     traffic_data = {
-      name = "df-ingest-traffic-data"
-      data_type = "traffic"
-      script_object = "${var.script_base_location}ingest-traffic_data.zip"
+      name           = "df-ingest-traffic-data"
+      data_type      = "traffic"
+      script_object  = "${var.script_base_location}ingest-traffic_data.zip"
+      memory         = "2048M"
+    }
+    taxi_data = {
+      name           = "df-ingest-taxi-data"
+      data_type      = "traffic"
+      script_object  = "${var.script_base_location}ingest-taxi_data.zip"
+      memory         = "2048M"
     }
     collision_data = {
-      name = "df-ingest-crashes-data"
-      data_type = "crashes"
-      script_object = "${var.script_base_location}ingest-crashes_data.zip"
+      name           = "df-ingest-crashes-data"
+      data_type      = "crashes"
+      script_object  = "${var.script_base_location}ingest-crashes_data.zip"
+      memory         = "512M"
     }
     crashes_data = {
-      name = "df-ingest-vehicles-data"
-      data_type = "vehicles"
-      script_object = "${var.script_base_location}ingest-vehicles_data.zip"
+      name           = "df-ingest-vehicles-data"
+      data_type      = "vehicles"
+      script_object  = "${var.script_base_location}ingest-vehicles_data.zip"
+      memory         = "512M"
     }
     persons_data = {
-      name = "df-ingest-persons-data"
-      data_type = "persons"
-      script_object = "${var.script_base_location}ingest-persons_data.zip"
+      name           = "df-ingest-persons-data"
+      data_type      = "persons"
+      script_object  = "${var.script_base_location}ingest-persons_data.zip"
+      memory         = "512M"
     }
     weather_data = {
-      name = "df-ingest-weather-data"
-      data_type = "weather"
-      script_object = "${var.script_base_location}ingest-weather_data.zip"
+      name           = "df-ingest-weather-data"
+      data_type      = "weather"
+      script_object  = "${var.script_base_location}ingest-weather_data.zip"
+      memory         = "256M"
     }
   }
 
@@ -53,13 +64,14 @@ resource "google_cloudfunctions2_function" "function" {
   service_config {
     max_instance_count  = 1
     min_instance_count  = 1
-    available_memory    = "1024M"
+    available_memory    = each.value.memory
     timeout_seconds     = 1000
     ingress_settings    = "ALLOW_ALL"
     all_traffic_on_latest_revision = true
     service_account_email = var.service_account_email
   }
 }
+
 
 # Create Cloud Scheduler jobs for each Cloud Function
 resource "google_cloud_scheduler_job" "invoke_cloud_function" {
