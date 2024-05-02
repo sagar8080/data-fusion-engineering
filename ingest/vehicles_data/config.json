@@ -1,0 +1,32 @@
+{
+    "landing_bucket": "df-landing-zone-333850",
+    "code_bucket": "df-code-bucket-375306",
+    "util_bucket": "df-utility-340716",
+    "dataproc_bucket": "df-dataproc-908181",
+    "stage_dataset": "df_stg",
+    "raw_dataset": "df_raw",
+    "prod_dataset": "df_prd",
+    "catalog_dataset": "data_catalog",
+    "stage_tables": {
+        "traffic_data": "inst767-nyctrafficanalysis.df_stg.df_traffic_data_stg",
+        "crashes_data": "inst767-nyctrafficanalysis.df_stg.df_crashes_data_stg",
+        "vehicles_data": "inst767-nyctrafficanalysis.df_stg.df_vehicles_data_stg",
+        "persons_data": "inst767-nyctrafficanalysis.df_stg.df_persons_data_stg",
+        "taxi_data": "inst767-nyctrafficanalysis.df_stg.df_taxi_data_stg"
+    },
+    "raw_tables": {
+        "traffic_data": "inst767-nyctrafficanalysis.df_raw.df_traffic_data_raw",
+        "crashes_data": "inst767-nyctrafficanalysis.df_raw.df_crashes_data_raw",
+        "vehicles_data": "inst767-nyctrafficanalysis.df_raw.df_vehicles_data_raw",
+        "persons_data": "inst767-nyctrafficanalysis.df_raw.df_persons_data_raw",
+        "taxi_data": "inst767-nyctrafficanalysis.df_raw.df_taxi_data_raw"
+    },
+    "prod_tables": {
+        "traffic_data": "inst767-nyctrafficanalysis.df_prd.df_traffic_data_prd",
+        "crashes_data": "inst767-nyctrafficanalysis.df_prd.df_crashes_data_prd",
+        "vehicles_data": "inst767-nyctrafficanalysis.df_prd.df_vehicles_data_prd",
+        "persons_data": "inst767-nyctrafficanalysis.df_prd.df_persons_data_prd",
+        "taxi_data": "inst767-nyctrafficanalysis.df_prd.df_taxi_data_prd"
+    },
+    "catalog_table": "inst767-nyctrafficanalysis.data_catalog.df_process_catalog"
+}

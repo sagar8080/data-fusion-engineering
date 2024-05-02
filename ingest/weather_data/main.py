@@ -6,7 +6,12 @@ from retry_requests import retry
 
 import functions_framework
 from google.cloud import bigquery
+import json
 
+f= open("config.json", "r")
+config = json.loads(f.read())
+LANDING_BUCKET = config["landing_bucket"]
+CATALOG_TABLE_ID = config["catalog_table"]
 
 LOCATION = {
     "Manhattan": {"lattitude": 40.71, "longitude": -74.00},
@@ -35,7 +40,7 @@ def get_dates(input_date):
         end_date = start_date + datetime.timedelta(days=DAY_DELTA)
     elif isinstance(input_date, datetime.datetime):
         end_date = input_date + datetime.timedelta(days=DAY_DELTA)
-    start_date = input_date.strftime("%Y-%m-%d")
+    start_date = start_date.strftime("%Y-%m-%d")
     end_date = end_date.strftime("%Y-%m-%d")
     return start_date, end_date
 
@@ -50,7 +55,7 @@ def fetch_last_offset(table_id):
     results = bq_client.query(query).result()
     try:
         offset = list(results)[0]["last_timestamp_loaded"]
-        return offset
+        return offset if offset else DEFAULT_DATE
     except IndexError:
         return DEFAULT_DATE
 
@@ -176,7 +181,7 @@ def upload_to_gcs(data, burrough):
     file_path = f"data/pre-processed/weather_data/{current_day}"
     file_name = f"{burrough}_{current_timestamp}.json"
     try:
-        data.to_csv(f"gs://df-landing-zone/{file_path}/{file_name}")
+        data.to_csv(f"gs://{LANDING_BUCKET}/{file_path}/{file_name}")
         return "Success"
     except Exception as e:
         print(e)
@@ -186,8 +191,7 @@ def upload_to_gcs(data, burrough):
 @functions_framework.http
 def execute(request):
     start_timestamp = end_timestamp = datetime.datetime.now()
-    table_id = get_table_id()
-    last_date_loaded = fetch_last_offset(table_id)
+    last_date_loaded = fetch_last_offset(CATALOG_TABLE_ID)
     start_date, end_date = get_dates(last_date_loaded)
     try:
         for burrough in LOCATION.keys():
@@ -209,7 +213,7 @@ def execute(request):
             "last_timestamp_loaded": end_date,
             "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
-        store_func_state(table_id, function_state)
+        store_func_state(CATALOG_TABLE_ID, function_state)
         bq_client.close()
     except Exception as e:
         print(e)
