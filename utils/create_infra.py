@@ -346,7 +346,7 @@ def delete_tables(conf):
 
 def main():
     if operation_type.lower() == "create":
-        create_buckets()
+        # create_buckets()
         create_datasets()
         create_tables()
         write_config()

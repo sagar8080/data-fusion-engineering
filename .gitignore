@@ -11,6 +11,8 @@ test.py
 terraform.tfvars
 terraform.tfstate
 terraform.tfstate.backup
+.vscode/
+**/config.json
 
 # Allow specific files
 !main.tf
