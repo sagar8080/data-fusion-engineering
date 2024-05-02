@@ -67,7 +67,7 @@ def upload_to_gcs(data):
         data_bytes = bytes(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         bucket = storage_client.bucket(LANDING_BUCKET)
         blob = bucket.blob(f"{file_path}/{file_name}")
-        blob.upload_from_string(data_bytes)
+        blob.upload_from_string(data_bytes, content_type="application/json")
     except Exception as e:
         print(e)
 
