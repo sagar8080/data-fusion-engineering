@@ -2,7 +2,7 @@ import datetime
 import requests
 import traceback
 import json
-from dateutil import relativedelta
+from dateutil.relativedelta import relativedelta
 
 import functions_framework
 from google.cloud import storage, bigquery
@@ -46,8 +46,7 @@ def get_start_end_date(input_date):
 
 
 def generate_file_url(date):
-    year_month = date.strftime("%Y-%m")
-    return f"{BASE_URL}/yellow_tripdata_{year_month}.parquet"
+    return f"{BASE_URL}/yellow_tripdata_{date}.parquet"
 
 
 def upload_to_gcs(file_url):
@@ -81,8 +80,6 @@ def execute(request):
         start_timestamp = datetime.datetime.now()
         last_date_loaded = fetch_last_date(CATALOG_TABLE_ID)
         start_date, end_date = get_start_end_date(last_date_loaded)
-        if end_date > start_timestamp:
-            raise Exception("End date exceeds current date")
         file_url = generate_file_url(start_date)
         if file_url:
             try:
@@ -111,4 +108,3 @@ def execute(request):
     except Exception as e:
         traceback.print_exc()
     return state
-
