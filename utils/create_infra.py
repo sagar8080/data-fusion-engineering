@@ -33,7 +33,8 @@ else:
     bigquery_client = bigquery.Client()
     storage_client = storage.Client()
 
-config = dict()
+
+CONFIG = dict()
 
 
 def generate_hashed_id():
@@ -107,7 +108,7 @@ def delete_dataset(dataset_name):
     bigquery_client.delete_dataset(dataset_name)
 
 
-def create_datasets():
+def create_datasets(config):
     stage_dataset = create_dataset(STG_DATASET)
     if stage_dataset:
         config["stage_dataset"] = STG_DATASET
@@ -133,7 +134,7 @@ def create_datasets():
         logger.warning("Failed to create catalog dataset")
 
 
-def create_tables():
+def create_tables(config):
     tables = {
         TRAFFIC_TABLE: traffic_data_schema,
         CRASHES_TABLE: mv_crashes_schema,
@@ -198,7 +199,7 @@ def bucket_exists(bucket_name):
         return False
 
 
-def create_buckets():
+def create_buckets(config):
     try:
         buckets = {
             "landing_bucket": LANDING_BUCKET,
@@ -220,7 +221,7 @@ def create_buckets():
         print(f"Error occured: {e}")
 
 
-def upload_cfn_code(folder_path):
+def upload_cfn_code(folder_path, config):
     code_bucket_name = config["code_bucket"]
     code_bucket = storage_client.bucket(code_bucket_name)
     for foldername in os.listdir(folder_path):
@@ -233,7 +234,7 @@ def upload_cfn_code(folder_path):
             blob.upload_from_filename(f"{zip_path}.zip")
 
 
-def add_config_to_ingest(base_path):
+def add_config_to_ingest(base_path, config):
     try:
         if not os.path.isdir(base_path):
             logger.error(f"The path {base_path} is not a valid directory.")
@@ -243,10 +244,10 @@ def add_config_to_ingest(base_path):
             item_path = os.path.join(base_path, item)
             if os.path.isdir(item_path):
                 config_file_path = os.path.join(item_path, "config.json")
-                with open(config_file_path, "w") as config_file:
+                with open(config_file_path, "w+") as config_file:
                     json.dump(config, config_file, indent=4)
                 logger.warning(f"Written config.json to {item_path}")
-                add_config_to_ingest(item_path)
+                add_config_to_ingest(item_path, config)
     except json.JSONDecodeError as e:
         logger.error(f"Failed to encode config to JSON: {e}")
     except OSError as e:
@@ -255,7 +256,7 @@ def add_config_to_ingest(base_path):
         logger.error(f"Unexpected error: {e}")
 
 
-def upload_to_cloud(code_bucket_name):
+def upload_to_cloud(code_bucket_name, config):
     code_bucket = storage_client.bucket(code_bucket_name)
     blob = code_bucket.blob("config/config.json")
     config_string = json.dumps(config)
@@ -263,7 +264,7 @@ def upload_to_cloud(code_bucket_name):
     logger.warning(f"Uploaded config file to {code_bucket_name}")
 
 
-def write_config():
+def write_config(config):
     filename = "config.json"
     filepath = os.path.join(os.getcwd(), "utils", filename)
     code_bucket_name = config["code_bucket"]
@@ -271,7 +272,7 @@ def write_config():
     try:
         with open(filepath, "w") as f:
             json.dump(config, f, indent=4)
-        upload_to_cloud(code_bucket_name)
+        upload_to_cloud(code_bucket_name, config)
 
     except json.JSONDecodeError as e:
         logger.error(f"Failed to encode config to JSON: {e}")
@@ -280,33 +281,12 @@ def write_config():
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
         try:
-            upload_to_cloud(code_bucket_name)
+            upload_to_cloud(code_bucket_name, config)
         except Exception as e:
             logger.error(f"Failed to upload config file to Google Cloud Storage: {e}")
 
 
-def write_config():
-    filename = "config.json"
-    filepath = os.path.join(os.getcwd(), f"utils/{filename}")
-    code_bucket_name = config["code_bucket"]
-    code_bucket = storage_client.bucket(code_bucket_name)
-    try:
-        with open(filepath, "w+") as f:
-            json.dump(config, f)
-            f.close()
-        blob = code_bucket.blob(f"config/config.json")
-        blob.upload_from_string(json.dumps(config))
-        logger.warning(f"uploaded config file to {code_bucket_name}")
-    except Exception as e:
-        with open(filepath, "w+") as f:
-            f.write(json.dumps(config, indent=4))
-            f.close()
-        blob = code_bucket.blob(f"config/config.json")
-        blob.upload_from_string(json.dumps(config))
-        logger.warning(f"uploaded config file to {code_bucket}")
-
-
-def upload_dataproc_jobs(filepath):
+def upload_dataproc_jobs(filepath, config):
     code_bucket_name = config["code_bucket"]
     code_bucket = storage_client.bucket(code_bucket_name)
     for filename in os.listdir(filepath):
@@ -330,6 +310,14 @@ def read_config(config_bucket):
         blob = code_bucket.blob(f"config/config.json")
         configuration = json.loads(blob.download_as_string())
         return configuration
+    
+
+def check_config_in_utils():
+    config_path = os.path.join('utils', 'config.json')
+    if os.path.exists(config_path):
+        return True
+    else:
+        return False
 
 
 def delete_buckets(conf):
@@ -346,13 +334,27 @@ def delete_tables(conf):
 
 def main():
     if operation_type.lower() == "create":
-        # create_buckets()
-        create_datasets()
-        create_tables()
-        write_config()
-        add_config_to_ingest(f"{os.getcwd()}/ingest/")
-        upload_cfn_code(f"{os.getcwd()}/ingest/")
-        upload_dataproc_jobs(f"{os.getcwd()}/data_pipelines/")
+        
+        if check_config_in_utils:
+            logger.warning("Config found, skipping resource creation, updating cloud function")
+            f = open("utils/config.json", "r")
+            config = json.loads(f.read())
+            write_config(config)
+            add_config_to_ingest(f"{os.getcwd()}/ingest/", config)
+            upload_cfn_code(f"{os.getcwd()}/ingest/", config)
+            upload_dataproc_jobs(f"{os.getcwd()}/data_pipelines/", config)
+        
+        else:
+            logger.warning("Config not found, creating GCP resources")
+            config = dict()
+            create_buckets(config)
+            create_datasets(config)
+            create_tables(config)
+            write_config(config)
+            add_config_to_ingest(f"{os.getcwd()}/ingest/", config)
+            upload_cfn_code(f"{os.getcwd()}/ingest/", config)
+            upload_dataproc_jobs(f"{os.getcwd()}/data_pipelines/", config)
+    
     elif operation_type.lower() == "delete":
         conf = read_config(config_bucket)
         delete_buckets(conf)
