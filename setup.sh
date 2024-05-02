@@ -77,6 +77,29 @@ export_tf_variables() {
     export TF_VAR_dataproc_bucket=$(jq -r '.dataproc_bucket' "$CONFIG_PATH")
 }
 
+store_tf_vars_in_bash_file() {
+    CONFIG_PATH="utils/config.json"
+    echo "Exporting Terraform variables to .bashrc"
+
+    # Read values from JSON config using jq
+    TF_VAR_project_id="${PROJECT_ID}"
+    TF_VAR_credentials_file_path="${HOME}/${SERVICE_ACCOUNT_NAME}-key.json"
+    TF_VAR_service_account_email="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+    TF_VAR_landing_bucket=$(jq -r '.landing_bucket' "$CONFIG_PATH")
+    TF_VAR_code_bucket=$(jq -r '.code_bucket' "$CONFIG_PATH")
+    TF_VAR_dataproc_bucket=$(jq -r '.dataproc_bucket' "$CONFIG_PATH")
+
+    # Append export statements to the .bashrc file
+    echo "export TF_VAR_project_id=\"${TF_VAR_project_id}\"" >> ~/.bashrc
+    echo "export TF_VAR_credentials_file_path=\"${TF_VAR_credentials_file_path}\"" >> ~/.bashrc
+    echo "export TF_VAR_service_account_email=\"${TF_VAR_service_account_email}\"" >> ~/.bashrc
+    echo "export TF_VAR_landing_bucket=\"${TF_VAR_landing_bucket}\"" >> ~/.bashrc
+    echo "export TF_VAR_code_bucket=\"${TF_VAR_code_bucket}\"" >> ~/.bashrc
+    echo "export TF_VAR_dataproc_bucket=\"${TF_VAR_dataproc_bucket}\"" >> ~/.bashrc
+
+    echo "Terraform variables exported to .bashrc. Please restart your terminal or source .bashrc to apply changes."
+}
+
 check_and_install_terraform() {
     if command -v terraform &>/dev/null; then
         echo "Terraform is already installed."
@@ -180,6 +203,19 @@ create_infra() {
     python utils/create_infra.py -o create -p $PROJECT_ID
 }
 
+delete_config_files() {
+    local base_path="./ingest"
+
+    if [[ ! -d "$base_path" ]]; then
+        echo "The 'ingest' directory does not exist in the current working directory."
+        return 1
+    fi
+
+    find "$base_path" -type f -name "config.json" -exec echo "Deleting {}" \; -exec rm {} \;
+
+    echo "All config.json files have been deleted from $base_path."
+}
+
 
 run_terraform() {
     echo "Setting environment variables for Terraform"
@@ -221,6 +257,12 @@ destroy_resources
 
 # create cloud functions and cloud schedulers for each of the APIS
 run_terraform
+
+# remove config files from ingest location to avoid repition
+delete_config_files
+
+# store tfvars in env variables to persist across sessions
+store_tf_vars_in_bash_file
 
 # remove pycache and .pyc files if generated
 find . | grep -E "(/__pycache__$|\.pyc$|\.pyo$)" | xargs rm -rf
