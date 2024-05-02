@@ -42,7 +42,7 @@ resource "google_cloudfunctions2_function" "function" {
       name           = "df-ingest-weather-data"
       data_type      = "weather"
       script_object  = "${var.script_base_location}ingest-weather_data.zip"
-      memory         = "256M"
+      memory         = "512M"
     }
   }
 
