@@ -1,0 +1,20 @@
+# Ignore these
+zipped/
+data/
+.idea/
+.terraform/
+.cache.sqlite
+.terraform.lock.hcl
+dir_structure.txt
+outputs.tf
+test.py
+terraform.tfvars
+terraform.tfstate
+terraform.tfstate.backup
+.vscode/
+**/config.json
+
+# Allow specific files
+!main.tf
+!README.md
+!variables.tf

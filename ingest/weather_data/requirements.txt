@@ -1,0 +1,10 @@
+functions-framework==3.*
+google-cloud-bigquery==3.20.1
+requests==2.31.0
+openmeteo-requests
+requests-cache 
+retry-requests
+numpy
+pandas
+fsspec
+gcsfs
