@@ -92,7 +92,74 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 ![Alt text](./GCP%20-%20data%20fusion%20engineering.jpg)
 
 ## Data Engineering Roadmap
-- To be updated
+
+### Initial Cloud Setup
+
+The process begins by running the file `setup.sh`. In order to reproduce this architecture on GCP make the script executable by performing `chmod +x setup.sh` 
+and run the file as `./setup.sh <GCP-PROJECT-ID> <GCP-SERVICE-ACCOUNT>` in the current working directory. Here is a breakdown of he detailed shell script operations that provides a complete view of the automated deployment and management process that supports the data architecture.
+
+- Initial Setup and Installation:
+    - The script takes in 2 arguments: `GCP project id` which needs to be created prior installation and a `service account name` which may or may not be created prior to execution.
+    - The script begins by installing jq on Ubuntu or WSL (Windows Subsystem for Linux) to handle JSON files, crucial for reading configuration files.
+    - Validates if the gcloud CLI is installed, and installs it if absent, ensuring tools necessary for interacting with Google Cloud services are available.
+- Google Cloud Authentication and Configuration:
+    - Establishes service accounts and sets up application default credentials to ensure seamless authentication and authorization with Google Cloud services.
+    - Specifically creates a new service account, automating permissions and credential setup necessary for the cloud resources. 
+    - If this script is run multiple times, it 
+- Environment Setup for Development:
+    - Ensures Python and virtualenv are installed, setting up a controlled and consistent development environment.
+    - Automatically installs necessary Python libraries from requirements.txt, ensuring all dependencies are satisfied for the scripts to run.
+- Infrastructure Setup and Management:
+    - Automates the creation of BigQuery datasets, tables, and GCS buckets. It also handles the generation of a global configuration and zips and uploads Cloud Functions (CFN) code to a GCS code bucket dynamically.
+    - If a config file is already generated in previous installation, it uses that config file and skips the creation of resources.
+    - All the GCP buckets created will have a `6 digit  unique id` in order to maintain bucket naming standards which states that names should be globally unique
+    - Config file generated will vary from user to user
+    - Ensures Terraform is installed, facilitating infrastructure as code deployments that are reproducible and consistent.
+    - Exports necessary environment variables for Terraform, enabling it to manage cloud resources based on the defined configurations.
+- Resource Management:
+    - Optionally clears existing resources to ensure a clean state for deployments, which can be crucial for managing cloud costs and avoiding configuration drift.
+    - Executes Terraform scripts to create cloud functions and cloud schedulers for each of the APIs, automating the deployment of the entire cloud infrastructure.
+- Cleanup and Configuration Management:
+    - Removes configuration files from the ingest location to prevent repetition and maintain security by ensuring sensitive information is not left in accessible locations.
+    - Persists Terraform variables in the bash environment to ensure they are available across sessions, enhancing the usability of the script in persistent environments.
+- Cleanup Bytecode Files: 
+    - Removes Python bytecode files (pycache and .pyc files), keeping the workspace clean and ensuring that stale bytecode does not interfere with development.
+- Continuous Integration and Continuous Deployment (CI/CD): 
+    - The entire process can be part of a CI/CD pipeline, ensuring that updates to the codebase in the Git repository automatically trigger re-deployments, maintaining the sync between the code and the deployed infrastructure.
+
+### PROCESS FLOW
+The provided data architecture diagram and process flow outline a comprehensive data engineering solution designed to handle data ingestion, processing, and analysis within a Google Cloud Platform (GCP) environment. This solution leverages a variety of GCP services such as:
+
+1. `CLOUD FUNCTIONS` - for batch extraction of data from APIs
+2. `CLOUD SCHEDULER` - for executing cloud functions at pre-defined intervals using a cron expression
+3. `CLOUD STORAGE BUCKETS` - for storing the data extracted from APIs serving as a landing zone layer
+3. `BIGQUERY` - for storing the metadata, raw, staging, and production data
+4. `DATAPROC` - for processing data in cloud storage buckets and loading into bigquery tables
+5. `CLOUD COMPOSER (AIRFLOW)` - for orchestrating spark jobs that perform transformation and aggregation of raw data
+6. `LOOKER` - BI tool to build dashboards
+
+Here's a detailed exploration and explanation of the data engineering roadmap based on the outlined processes:
+
+- Data Ingestion:
+    - `External APIs to Cloud Storage:` The process begins with the ingestion of data from six different external APIs, each potentially representing different data domains such as traffic, crashes, vehicles, persons, weather, and TLC trip data. Cloud Functions are used to fetch data from these APIs periodically, triggered by Cloud Scheduler instances. This setup ensures that data fetching is automated and occurs at regular intervals.
+    - `Automation and Deployment:` The deployment of Cloud Functions is automated using a shell script that pulls the latest code from a Git repository and uses Terraform for infrastructure provisioning and management. This approach ensures that any updates to the function logic or configurations can be centrally managed and version-controlled.
+
+- Data Processing Orchestration:
+    - `Dataproc and Spark Jobs:` A Directed Acyclic Graph (DAG)-based workflow orchestrates the creation of dynamic Dataproc clusters and the execution of three Apache Spark jobs. This setup leverages the scalability and flexibility of Dataproc for processing large datasets efficiently.
+
+- Staging and Raw Data Management:
+    - `Spark Job 1:` The first Spark job processes the data fetched from the landing zone in Cloud Storage and writes it into a staging table in BigQuery. This step might include preliminary cleaning and structuring of the data.
+    - `Spark Job 2:` The second Spark job transfers data from the staging table to a raw table in BigQuery. This raw table acts as a static source of truth and includes transformations necessary to prepare the data for downstream analysis and reporting.
+
+- Production Data Handling:
+    - `Spark Job 3:` This job is responsible for transforming data from the raw tables into a production-ready format. It loads the data into an unified data model in BigQuery, performing aggregations, metric calculations, and any other necessary data transformations to support analytical needs.
+
+- Data Analysis and Reporting:
+    - `Business Intelligence Tools:` Data stored in BigQuery is then used as a source for BI tools such as Looker or Apache Superset. These tools are used to create interactive dashboards and reports that provide insights into the data, supporting business decisions and operational efficiency.
+
+- Metadata Management and Incremental Loading:
+    - `Data Catalogs:` Metadata for each execution, including job performance metrics and the last offset fetched from each API, is stored in a data catalog. This catalog not only helps in maintaining an audit trail of data operations but also supports incremental data loading by storing the last state of data fetched. This mechanism reduces redundancy, improves efficiency, and ensures that only new or changed data is fetched in subsequent runs.
+
 
 ## Ingest
 
