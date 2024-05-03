@@ -36,13 +36,18 @@ bq_client = bigquery.Client()
 
 def get_dates(input_date):
     if isinstance(input_date, str):
-        start_date = datetime.datetime.strptime(input_date, "%Y-%m-%d")
-        end_date = start_date + datetime.timedelta(days=DAY_DELTA)
+        try:
+            start_date = datetime.datetime.strptime(input_date, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError("input_date string must be formatted as 'YYYY-MM-DD'")
     elif isinstance(input_date, datetime.datetime):
-        end_date = input_date + datetime.timedelta(days=DAY_DELTA)
-    start_date = start_date.strftime("%Y-%m-%d")
-    end_date = end_date.strftime("%Y-%m-%d")
-    return start_date, end_date
+        start_date = input_date
+    else:
+        raise TypeError("input_date must be either a string formatted as 'YYYY-MM-DD' or a datetime object")
+    end_date = start_date + datetime.timedelta(days=DAY_DELTA)
+    start_date_str = start_date.strftime("%Y-%m-%d")
+    end_date_str = end_date.strftime("%Y-%m-%d")
+    return start_date_str, end_date_str
 
 
 def fetch_last_offset(table_id):
