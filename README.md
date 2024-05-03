@@ -98,33 +98,40 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 The process begins by running the file `setup.sh`. In order to reproduce this architecture on GCP make the script executable by performing `chmod +x setup.sh` 
 and run the file as `./setup.sh <GCP-PROJECT-ID> <GCP-SERVICE-ACCOUNT>` in the current working directory. Here is a breakdown of he detailed shell script operations that provides a complete view of the automated deployment and management process that supports the data architecture.
 
-- Initial Setup and Installation:
+- `Initial Setup and Installation:`
     - The script takes in 2 arguments: `GCP project id` which needs to be created prior installation and a `service account name` which may or may not be created prior to execution.
     - The script begins by installing jq on Ubuntu or WSL (Windows Subsystem for Linux) to handle JSON files, crucial for reading configuration files.
     - Validates if the gcloud CLI is installed, and installs it if absent, ensuring tools necessary for interacting with Google Cloud services are available.
-- Google Cloud Authentication and Configuration:
+
+- `Google Cloud Authentication and Configuration:`
     - Establishes service accounts and sets up application default credentials to ensure seamless authentication and authorization with Google Cloud services.
     - Specifically creates a new service account, automating permissions and credential setup necessary for the cloud resources. 
     - If this script is run multiple times, it 
-- Environment Setup for Development:
+
+- `Environment Setup for Development:`
     - Ensures Python and virtualenv are installed, setting up a controlled and consistent development environment.
     - Automatically installs necessary Python libraries from requirements.txt, ensuring all dependencies are satisfied for the scripts to run.
-- Infrastructure Setup and Management:
+
+- `Infrastructure Setup and Management:`
     - Automates the creation of BigQuery datasets, tables, and GCS buckets. It also handles the generation of a global configuration and zips and uploads Cloud Functions (CFN) code to a GCS code bucket dynamically.
     - If a config file is already generated in previous installation, it uses that config file and skips the creation of resources.
     - All the GCP buckets created will have a `6 digit  unique id` in order to maintain bucket naming standards which states that names should be globally unique
     - Config file generated will vary from user to user
     - Ensures Terraform is installed, facilitating infrastructure as code deployments that are reproducible and consistent.
     - Exports necessary environment variables for Terraform, enabling it to manage cloud resources based on the defined configurations.
-- Resource Management:
+
+- `Resource Management:`
     - Optionally clears existing resources to ensure a clean state for deployments, which can be crucial for managing cloud costs and avoiding configuration drift.
     - Executes Terraform scripts to create cloud functions and cloud schedulers for each of the APIs, automating the deployment of the entire cloud infrastructure.
-- Cleanup and Configuration Management:
+
+- `Cleanup and Configuration Management:`
     - Removes configuration files from the ingest location to prevent repetition and maintain security by ensuring sensitive information is not left in accessible locations.
     - Persists Terraform variables in the bash environment to ensure they are available across sessions, enhancing the usability of the script in persistent environments.
-- Cleanup Bytecode Files: 
+
+- `Cleanup Bytecode Files:` 
     - Removes Python bytecode files (pycache and .pyc files), keeping the workspace clean and ensuring that stale bytecode does not interfere with development.
-- Continuous Integration and Continuous Deployment (CI/CD): 
+
+- `Continuous Integration and Continuous Deployment (CI/CD):`
     - The entire process can be part of a CI/CD pipeline, ensuring that updates to the codebase in the Git repository automatically trigger re-deployments, maintaining the sync between the code and the deployed infrastructure.
 
 ### PROCESS FLOW
