@@ -106,7 +106,7 @@ and run the file as `./setup.sh <GCP-PROJECT-ID> <GCP-SERVICE-ACCOUNT>` in the c
 - `Google Cloud Authentication and Configuration:`
     - Establishes service accounts and sets up application default credentials to ensure seamless authentication and authorization with Google Cloud services.
     - Specifically creates a new service account, automating permissions and credential setup necessary for the cloud resources. 
-    - If this script is run multiple times, it 
+    - If this script is run multiple times using the same service account, it continues to use the previously generated credentials without creating a new one.
 
 - `Environment Setup for Development:`
     - Ensures Python and virtualenv are installed, setting up a controlled and consistent development environment.
