@@ -184,7 +184,7 @@ def upload_to_gcs(data, burrough):
     current_day = datetime.date.today()
     current_timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     file_path = f"data/pre-processed/weather_data/{current_day}"
-    file_name = f"{burrough}_{current_timestamp}.json"
+    file_name = f"{burrough}_{current_timestamp}.csv"
     try:
         data.to_csv(f"gs://{LANDING_BUCKET}/{file_path}/{file_name}")
         return "Success"
