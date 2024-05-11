@@ -2,6 +2,8 @@ import requests
 import json
 import datetime
 import traceback
+import pandas as pd
+import urllib.parse
 
 import functions_framework
 from google.cloud import storage, bigquery
@@ -18,6 +20,9 @@ DEFAULT_END_DATE = '2017-01-31T23:59:59'
 PROCESS_NAME = "df-ingest-traffic-data"
 LANDING_BUCKET = config["landing_bucket"]
 CATALOG_TABLE_ID = config["catalog_table"]
+BASE_URL = "https://data.cityofnewyork.us/resource/i4gi-tjb9.csv"
+BASE_PROC_NAME = "traffic_data"
+BASE_FILE_PATH = F"data/pre-processed/{BASE_PROC_NAME}"
 
 
 def fetch_last_offset(table_id):
@@ -47,12 +52,15 @@ def get_dates(input_date):
 
 
 def fetch_data(start_date, end_date):
-    api_url = f"https://data.cityofnewyork.us/resource/i4gi-tjb9.json?$limit={LIMIT}&$where=data_as_of >= '{start_date}' AND data_as_of <= '{end_date}'"
     try:
-        response = requests.get(api_url)
-        response.raise_for_status()
-        data = response.json()
-        return data
+        params = {
+            '$limit': f"{LIMIT}",
+            '$where': f"data_as_of >= '{start_date}' AND data_as_of <= '{end_date}'"
+        }
+        encoded_params = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
+        api_url = f"{BASE_URL}?{encoded_params}"
+        df = pd.read_csv(api_url, low_memory=False)
+        return df
     except requests.RequestException as e:
         print(f"Request failed: {e}")
     return None
@@ -61,15 +69,14 @@ def fetch_data(start_date, end_date):
 def upload_to_gcs(data):
     current_day = datetime.date.today()
     current_timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    file_path = f"data/pre-processed/traffic_data/{current_day}"
-    file_name = f"traffic_data_{current_timestamp}.json"
+    file_path = f"{BASE_FILE_PATH}/{current_day}"
+    file_name = f"{BASE_PROC_NAME}_{current_timestamp}.csv"
     try:
-        data_bytes = bytes(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        bucket = storage_client.bucket(LANDING_BUCKET)
-        blob = bucket.blob(f"{file_path}/{file_name}")
-        blob.upload_from_string(data_bytes, content_type="application/json")
+        data.to_csv(f"gs://{LANDING_BUCKET}/{file_path}/{file_name}", index=False)
+        return "Success"
     except Exception as e:
         print(e)
+        return "Failure"
 
 
 def store_func_state(table_id, state_json):
@@ -78,21 +85,20 @@ def store_func_state(table_id, state_json):
     if not errors:
         print("New rows have been added.")
     else:
-        print("Encountered errors while inserting rows: {}".format(errors))
+        print(f"Insert errors: {errors}")
 
 
 @functions_framework.http
 def execute(request):
-    state = "Started"
+    state = "started"
     try:
         start_timestamp = datetime.datetime.now()
         last_date_loaded = fetch_last_offset(CATALOG_TABLE_ID)
         start_date, end_date = get_dates(last_date_loaded)
         data = fetch_data(start_date, end_date)
-        if data:
+        if len(data) > 0:
             try:
-                upload_to_gcs(data)
-                state = "Success"
+                state = upload_to_gcs(data)
             except Exception as e:
                 print("Upload to GCS failed:", e)
                 state = "Failed"
@@ -114,5 +120,5 @@ def execute(request):
         storage_client.close()
         f.close()
     except Exception as e:
-        traceback.print_exc()
+        print(e)
     return state
