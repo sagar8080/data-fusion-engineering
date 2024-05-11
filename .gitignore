@@ -13,6 +13,7 @@ terraform.tfstate
 terraform.tfstate.backup
 .vscode/
 **/config.json
+run_landing_to_raw.sh
 
 # Allow specific files
 !main.tf
