@@ -22,9 +22,9 @@ spark = SparkSession.builder \
     .config('temporaryGcsBucket', config.get('util_bucket'))\
     .getOrCreate()
 
-
+raw_table = "df_raw.df_crashes_data_raw"
 df = spark.read.format("bigquery") \
-    .option("table", "df_raw.df_crashes_data_raw") \
+    .option("table", raw_table) \
     .load()
 
 
@@ -38,15 +38,13 @@ selected_columns = df.select(
 
 cleaned_data = selected_columns.filter(col("zip_code").isNotNull()).filter(col("crash_date").isNotNull())
 cleaned_data = cleaned_data.withColumn("crash_timestamp", from_unixtime(unix_timestamp(col("crash_date"), "yyyy-MM-dd HH:mm:ss.SSSSSS z")))
+cleaned_data = cleaned_data.withColumn("crash_date", to_date("crash_date", "yyyy-mm-dd"))
 
 cleaned_data = cleaned_data\
     .withColumn("year", year(col("crash_timestamp"))) \
     .withColumn("month", month(col("crash_timestamp"))) \
     .withColumn("day_of_week", dayofweek(col("crash_timestamp")))\
     .withColumn("hour_of_day", hour(col("crash_timestamp")))
-
-cleaned_data = cleaned_data.withColumn(
-    "year_month_ts", to_date(col("year")))
 
 cleaned_data = cleaned_data.withColumn("was_fatal", when(col("number_of_persons_killed") > 0, True).otherwise(False))
 
@@ -61,6 +59,13 @@ cleaned_data = cleaned_data.withColumn(
 )
 df_transformed = replace_nulls(cleaned_data)
 df_transformed.show(10)
+df_transformed = df_transformed.select(
+    ['collision_id', 'crash_date', 'borough', 'zip_code', 'latitude', 'longitude', 
+     'number_of_persons_injured', 'number_of_persons_killed', 'number_of_pedestrians_injured', 
+     'number_of_cyclist_injured', 'number_of_motorist_injured', 'contributing_factor', 'vehicle_type_code1', 
+     'vehicle_type_code2', 'year', 'month', 'day_of_week', 'hour_of_day', 'was_fatal', 'total_vehicles_involved'
+     ]
+     )
 # Write the data to a new BigQuery dataset, partitioned by year and month
 prod_table = config.get("prod_tables").get("crashes_data")
 df_transformed.write.format("bigquery") \
