@@ -134,3 +134,6 @@ Our GitHub repository follows best practices for code management. Commits are sm
 
 ## Screenshots
 * To be updated
+
+## Dashboard
+![Alt text](./superset-dashboard.jpg)
