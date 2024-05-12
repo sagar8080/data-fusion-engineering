@@ -35,11 +35,9 @@ df_selected = df.select(
 df_filtered = df_selected.filter(col("crash_date").isNotNull())
 
 # Extract year and month from the crash_date
-df_transformed = df_filtered.withColumn(
-    "year", year(from_unixtime(unix_timestamp(col("crash_date"), "yyyy-MM-dd HH:mm:ss.SSSSSS z")))
-).withColumn(
-    "month", month(from_unixtime(unix_timestamp(col("crash_date"), "yyyy-MM-dd HH:mm:ss.SSSSSS z")))
-)
+df_transformed = df_filtered.withColumn("crash_date", to_date(col("crash_date"), "yyyy-MM-dd"))
+df_transformed = df_transformed.withColumn("year", year(col("crash_date")))\
+                               .withColumn("month", month(col("crash_date")))
 
 # Apply transformations
 df_transformed = df_transformed.withColumn(

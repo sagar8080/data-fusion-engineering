@@ -33,7 +33,7 @@ important_columns = [
 ]
 df_selected = df.select(*important_columns)
 df_filtered = df_selected.filter(col("date").isNotNull())
-df_transformed = df_filtered.withColumn("date", to_date("date")) \
+df_transformed = df_filtered.withColumn("date", to_date("date", "yyyy-mm-dd")) \
     .withColumn("year", year("date")) \
     .withColumn("month", month("date"))
 
