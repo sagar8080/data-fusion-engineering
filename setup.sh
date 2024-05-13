@@ -200,7 +200,7 @@ check_and_install_dependencies() {
 }
 
 create_infra() {
-    python utils/create_infra.py -o create -p $PROJECT_ID
+    python3 utils/create_infra.py -o create -p $PROJECT_ID
 }
 
 delete_config_files() {
