@@ -19,10 +19,23 @@ def create_spark_session(config):
     return spark
 
 def get_config():
+    """Load configuration parameters from a JSON file."""
     with open('config.json', 'r') as config_file:
         return json.load(config_file)
 
 def list_and_batch_gcs_files(client, bucket_name, prefix, max_batch_size_gb=5):
+    """
+    List and batch GCS files based on a prefix.
+
+    Args:
+        client: Google Cloud Storage client.
+        bucket_name (str): Name of the GCS bucket.
+        prefix (str): Prefix to filter files.
+        max_batch_size_gb (int): Maximum batch size in GB.
+
+    Yields:
+        list: List of file paths in each batch.
+    """
     max_batch_size_bytes = max_batch_size_gb * 1024 ** 3
     
     try:
@@ -57,6 +70,17 @@ def list_and_batch_gcs_files(client, bucket_name, prefix, max_batch_size_gb=5):
         yield current_batch
 
 def generate_file_path(bucket_name, proc_name, stage):
+    """
+    Generate file path based on bucket name, process name, and stage.
+
+    Args:
+        bucket_name (str): Name of the GCS bucket.
+        proc_name (str): Name of the process.
+        stage (str): Stage of the process.
+
+    Returns:
+        str: Generated file path.
+    """
     base_path = f"gs://{bucket_name}/data/{stage}/{proc_name}/"
     if stage == 'processed':
         current_day = datetime.date.today().strftime("%Y-%m-%d")
@@ -66,6 +90,15 @@ def generate_file_path(bucket_name, proc_name, stage):
     return base_path
 
 def cast_dataframe_types(dataframe):
+    """
+    Cast DataFrame columns to appropriate data types.
+
+    Args:
+        dataframe: Spark DataFrame.
+
+    Returns:
+        dataframe: DataFrame with columns casted to appropriate data types.
+    """
     cast_dict = {
         'VendorID': 'integer',
         'tpep_pickup_datetime': 'timestamp',
@@ -96,11 +129,29 @@ def cast_dataframe_types(dataframe):
     return dataframe
 
 def read_batch(spark, file_paths):
+    """
+    Read a batch of files into a Spark DataFrame and cast the columns to appropriate data types.
+
+    Args:
+        spark: SparkSession.
+        file_paths (list): List of file paths.
+
+    Returns:
+        dataframe: Spark DataFrame containing the data.
+    """
     df = spark.read.parquet(file_paths)
     df = cast_dataframe_types(df)
     return df
 
 def move_gcs_files(client, batch, bucket_name):
+    """
+    Move a batch of files from one location to another within the same bucket.
+
+    Args:
+        client: Google Cloud Storage client.
+        batch (list): List of file paths.
+        bucket_name (str): Name of the GCS bucket.
+    """
     bucket = client.bucket(bucket_name)
     for input_filepath in batch:
         parts = input_filepath[5:].split('/')
@@ -111,12 +162,28 @@ def move_gcs_files(client, batch, bucket_name):
         source_blob.delete()
 
 def write_data_to_bigquery(dataframe, table_name):
+    """
+    Write data from a Spark DataFrame to BigQuery.
+
+    Args:
+        dataframe: Spark DataFrame containing the data.
+        table_name (str): Name of the BigQuery table.
+    """
     dataframe.write.format('bigquery') \
         .option('table', table_name) \
         .mode('append') \
         .save()
 
 def main(process_name, config, prefix, batch_size=5):
+    """
+    Main function to process files, transform data, and load it into BigQuery.
+
+    Args:
+        process_name (str): Name of the process.
+        config (dict): Configuration parameters.
+        prefix (str): Prefix for filtering files.
+        batch_size (int): Number of files to process in each batch.
+    """
     spark = create_spark_session(config)
     client = storage.Client()
     bucket_name = config["landing_bucket"]
@@ -147,3 +214,4 @@ if __name__ == "__main__":
         prefix_path = None
     config = get_config()
     main(proc_name, config, batch_size=batch_size, prefix=prefix_path)
+
