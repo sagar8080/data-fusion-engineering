@@ -89,7 +89,7 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 - TLC trip data - https://registry.opendata.aws/nyc-tlc-trip-records-pds/
 
 ## Application Architecture
-![Alt text](./GCP%20-%20data%20fusion%20engineering.jpg)
+![Alt text](./architecture_diagram.svg)
 
 ## Data Engineering Roadmap
 - To be updated
