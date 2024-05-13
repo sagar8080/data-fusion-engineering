@@ -15,10 +15,13 @@ def replace_nulls(df):
     Returns:
         pyspark.sql.DataFrame: DataFrame with null values in string columns replaced by 'Unknown'.
     """
+    
     # Get the names of all string columns in the DataFrame
     string_columns = [field.name for field in df.schema.fields if isinstance(field.dataType, StringType)]
+    
     # Replace null values with 'Unknown' for string columns
     filled_df = df.fillna('Unknown', subset=string_columns)
+    
     return filled_df
 
 # Load configuration settings from the config file
@@ -50,7 +53,8 @@ df_filtered = df_selected.filter(col("crash_date").isNotNull())
 # Transform the DataFrame by extracting year and month from 'crash_date'
 df_transformed = df_filtered.withColumn("crash_date", to_date(col("crash_date"), "yyyy-MM-dd"))
 df_transformed = df_transformed.withColumn("year", year(col("crash_date")))\
-                               .withColumn("month", month(col("crash_date")))
+                                .withColumn("month", month(col("crash_date")))\
+                                .withColumn("day", day(col("crash_date")))
 
 # Apply transformations to create new columns for part of day, weekend, vehicle age category, and high impact crash
 df_transformed = df_transformed.withColumn(
@@ -65,11 +69,11 @@ df_transformed = df_transformed.withColumn(
     .otherwise("No")
 ).withColumn(
     "vehicle_age_category",
-    when(col("vehicle_year").isNull(), "Unknown")
-    .when(year(current_date()) - col("vehicle_year") < 5, "0-4 years")
-    .when(year(current_date()) - col("vehicle_year") < 10, "5-9 years")
-    .otherwise("10+ years")
-).withColumn(
+        when(col("vehicle_year").isNull(), "Unknown")
+        .when(year(current_date()) - col("vehicle_year") < 5, "0-4 years")
+        .when(year(current_date()) - col("vehicle_year") < 10, "5-9 years")
+        .otherwise("10+ years"))\
+        .withColumn(
     "high_impact_crash",
     when(col("contributing_factor_1").isin(["Lost Consciousness", "Driver Inattention/Distraction"]), "Yes")
     .otherwise("No")
