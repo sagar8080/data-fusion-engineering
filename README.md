@@ -122,6 +122,31 @@ Ingest Phase Screenshots:
 |:--:|
 | Cloud Functions Fully Set Up |
 
+![Creating Cloud Bucket](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/5e971640-81aa-4d3b-81e6-4fe60d3310fb)
+|:--:|
+| GCS Cloud Bucket Creation |
+
+![cloud_bucket_creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/2d50b988-904a-4e1e-9912-083e37903c39)
+|:--:|
+| Created GCS Cloud Buckets |
+
+![landing_zone](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/ada93002-317f-46e9-ac64-e22a946888cb)
+
+![landing_zone_contents - 1](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/4c9627b8-54b0-4e49-9f63-a2ff51c0882e)
+
+![landing_zone_contents - 2](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/2dd53244-6959-42a9-840f-ee86e626bf9a)
+
+![landing_zone_contents - 3](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/7f8af8c6-d24f-470f-b961-b97b74b61656)
+|:--:|
+| Data Ingestion into the Landing Zone |
+
+![code_bucket](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/93015060-fd38-40fe-9d3a-81a1b37a543d)
+|:--:|
+| Code Bucket Creation |
+
+![code_bucket_contents](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/3e0c39bd-4849-4189-803f-ef3997476188)
+|:--:|
+| Code Bucket Contents |
 
 ## Transformation
 
@@ -143,20 +168,51 @@ Transformation Phase Screenshots:
 
 ![Running Load to Raw Shell Script on VM](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/12dda142-4b48-4a6c-82a0-cf9878b60566)
 |:--:|
-| Running Landing Zone to Raw Zone Script on Virtual Machine (Compute Engine) |
+| We intended to run "Landing Zone to Raw Zone Script" also on Virtual Machine (Compute Engine) using a CRON expression |
 
 ![Running Transformation Shell Script on VM](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/9d1f70e1-b21a-46ba-ad17-1ca1af67a97b)
 |:--:|
-| Running Transformation Script on Virtual Machine (Compute Engine) |
+| We inteded to run the "Transformation Script" on Virtual Machine (Compute Engine) using CRON expression |
 
 ![Transformation Job Successful](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/f75e6c6d-d377-41aa-88ea-36b6df0f0e66)
 |:--:|
 | Transformation Job Successful on Virtual Machine (Compute Engine) |
 
+![cmd - run load to raw](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/d3b90923-52c2-47ff-934f-58c0f59e01b0)
+|:--:|
+| Running "Landing Zone to Raw Zone Script" on the Local Environment (Command Line) |
+
+![cmd - run transformations](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/af36f240-4217-4509-9125-40d35ce94d7b)
+| Running "Transformation Script" on the Local Environment (Command Line) |
+
+![PYSPARK jobs](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/4adc64ee-f8b0-4296-bf1e-b9f9a9176ac2)
+|:--:|
+| PySpark Job Creation |
+
+![pyspark execution](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/4f70cca7-5a5a-463b-a7ac-5dc23b484551)
+|:--:|
+| PySpark Job Execution Details |
+
 
 ## Storage
 
 We use BigQuery as our primary storage technology, chosen for its seamless integration with DataProc and excellent support for SQL queries on large datasets. The database is structured to logically represent our data model, with separate tables for each data source that relate to one another through shared keys.
+
+![data - observability](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/bcfc999b-f58f-472d-9524-8baf133e17a7)
+|:--:|
+| Verifying Offset details Using the Data Observability Table |
+
+![last_20_executions](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/d54c480a-6013-4880-bde4-1a7a6711896f)
+|:--:|
+| Data Observability Table showing last 20 records |
+
+![pre-processed to processed](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/ee6be573-b3d8-4170-a580-3815afd4a3c3)
+|:--:|
+| Data Storage from Landing Zone (Pre-Processed) to Raw Zone (Processed) |
+
+![bigquery_tables](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/b40667c9-0910-4c01-86de-e832df9ce6a1)
+|:--:|
+| BigQuery Tables |
 
 ## Analysis
 
