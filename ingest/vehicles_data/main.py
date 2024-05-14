@@ -7,11 +7,15 @@ import urllib.parse
 import functions_framework
 from google.cloud import storage, bigquery
 
-
+# Initialize BigQuery and Cloud Storage clients
 bq_client = bigquery.Client()
 storage_client = storage.Client()
-f= open("config.json", "r")
+
+# Load configuration file
+f = open("config.json", "r")
 config = json.loads(f.read())
+
+# Constants for configuration and API limits
 LANDING_BUCKET = config["landing_bucket"]
 CATALOG_TABLE_ID = config["catalog_table"]
 PROCESS_NAME = "df-ingest-vehicles-data"
@@ -23,7 +27,7 @@ BASE_URL = "https://data.cityofnewyork.us/resource/bm4k-52h4.csv"
 BASE_PROC_NAME = "vehicles_data"
 BASE_FILE_PATH = f"data/pre-processed/{BASE_PROC_NAME}"
 
-    
+# Fetch the last timestamp loaded from the BigQuery catalog table
 def fetch_last_offset(table_id):
     query = f"""
     SELECT last_timestamp_loaded FROM `{table_id}`
@@ -37,8 +41,8 @@ def fetch_last_offset(table_id):
         return offset if offset else DEFAULT_START_DATE
     except Exception:
         return DEFAULT_START_DATE
-    
 
+# Get start and end dates with a delta of 60 days
 def get_dates(input_date):
     if isinstance(input_date, str):
         start_date = datetime.datetime.strptime(input_date, "%Y-%m-%dT%H:%M:%S")
@@ -49,7 +53,7 @@ def get_dates(input_date):
     end_date = end_date.strftime("%Y-%m-%dT%H:%M:%S")
     return start_date, end_date
 
-
+# Fetch data from the NYC vehicle dataset API
 def fetch_data(start_date, end_date):
     try:
         params = {
@@ -64,7 +68,7 @@ def fetch_data(start_date, end_date):
         print(f"Request failed: {e}")
     return None
 
-
+# Upload the fetched data to Google Cloud Storage
 def upload_to_gcs(data):
     current_day = datetime.date.today()
     current_timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -77,7 +81,7 @@ def upload_to_gcs(data):
         print(e)
         return "Failure"
 
-
+# Store the state of the function execution in BigQuery
 def store_func_state(table_id, state_json):
     rows_to_insert = [state_json]
     errors = bq_client.insert_rows_json(table_id, rows_to_insert)
@@ -86,7 +90,7 @@ def store_func_state(table_id, state_json):
     else:
         print(f"Insert errors: {errors}")
 
-
+# Main function to execute the data fetching and storing process
 @functions_framework.http
 def execute(request):
     state = "started"
