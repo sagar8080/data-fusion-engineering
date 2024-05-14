@@ -180,7 +180,7 @@ chmod +x setup.sh
 |:--:|
 | Code Bucket Creation |
 
-![code_bucket_contents](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/3e0c39bd-4849-4189-803f-ef3997476188)
+![code_bucket_contents](./screenshots/code_bucket.png)
 |:--:|
 | Code Bucket Contents |
 
