@@ -123,10 +123,36 @@ Ingest Phase Screenshots:
 | Cloud Functions Fully Set Up |
 
 
-
 ## Transformation
 
 Data from all sources is transformed into a cohesive data model using DataProc and PySpark. The transformation occurs bi-hourly, dovetailing with the ingest timing to ensure a balance between data freshness and system efficiency. During this stage, data is prepared for analysis, conforming to a relational schema that supports complex queries.
+
+Transformation Phase Screenshots:
+
+![Setting up DataProc Cluster](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/23fbb913-3a74-492b-9e3b-8edc95866cef)
+|:--:|
+| DataProc Cluster Set Up |
+
+![Setting up Virtual Environment](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/7de095bd-479c-42e4-934c-80f8a0db6f14)
+|:--:|
+| Virtual Environment (Compute Engine) Set Up |
+
+![DataProc Jobs Created](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/d801a323-a65b-4aa9-8d63-c4cb7d3ca664)
+|:--:|
+| Creating DataProc Jobs |
+
+![Running Load to Raw Shell Script on VM](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/84bd92da-6fdf-4a55-9158-d7bebfac9077)
+|:--:|
+| Running Landing Zone to Raw Zone Script on Virtual Machine (Compute Engine) |
+
+![Running Transformation Shell Script on VM](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/9d1f70e1-b21a-46ba-ad17-1ca1af67a97b)
+|:--:|
+| Running Transformation Script on Virtual Machine (Compute Engine) |
+
+![Transformation Job Successful](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/f75e6c6d-d377-41aa-88ea-36b6df0f0e66)
+|:--:|
+| Transformation Job Successful on Virtual Machine (Compute Engine) |
+
 
 ## Storage
 
