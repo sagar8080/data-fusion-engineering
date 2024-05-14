@@ -141,7 +141,7 @@ Transformation Phase Screenshots:
 |:--:|
 | Creating DataProc Jobs |
 
-![Running Load to Raw Shell Script on VM](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/84bd92da-6fdf-4a55-9158-d7bebfac9077)
+![Running Load to Raw Shell Script on VM](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/12dda142-4b48-4a6c-82a0-cf9878b60566)
 |:--:|
 | Running Landing Zone to Raw Zone Script on Virtual Machine (Compute Engine) |
 
