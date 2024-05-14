@@ -214,13 +214,21 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 |:--:|
 | Data Ingestion into the Landing Zone |
 
-
-
 ## Load and Transform
 
 Data from all sources is transformed into a cohesive data model using DataProc and PySpark. The transformation occurs bi-hourly, dovetailing with the ingest timing to ensure a balance between data freshness and system efficiency. During this stage, data is prepared for analysis, conforming to a relational schema that supports complex queries.
 
+1. **Data Proc Initialization**: Initialize a DataProc cluster within the Google Cloud (GCP) environment to enable effective communication between data nodes and facilitate batch processing.
 
+2. **Virtual Machine Setup**: Set up a Google Compute Engine (GCE) VM equipped with necessary compute resources to host and execute data loading and transformation scripts, utilizing CRON expressions for robust scheduling across any infrastructure.
+
+3. **Batch Loading**: Utilize the `run_load_to_raw.sh`  shell script for moving data from the landing zone into the raw data zone. This script manages the initialization of the cluster, batch loads data into the code bucket and BigQuery, and terminates the cluster post-successful execution. This script is also tested locally to ensure consistent execution across various environments. This Batch Loading Script is run once daily on a defined schedule using using `CRONTAB` file available on all Linux Distros.
+
+4. **PySpark Job Creation**: Develop and deploy PySpark scripts on the DataProc cluster to handle more intricate data transformations and processing tasks.
+
+5. **Transformation to Production Data**: The `run_transformation.sh` shell script is used to refine raw data into production-ready data sets. This script coordinates the execution of PySpark scripts and, similar to other scripts, is also tested locally to validate its performance in different environments. The Transformation Script is run once daily on a defined schedule `CRONTAB` file available on all Linux Distros.
+
+6. **Monitoring & Optimization**: Continuously monitor the performance of both the DataProc cluster and the Compute Engine VM, as well as script executions, using GCP's monitoring tools. This monitoring assists in adjusting compute resources and optimizing script execution to enhance processing speed and resource efficiency.
 
 ![Setting up DataProc Cluster](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/23fbb913-3a74-492b-9e3b-8edc95866cef)
 |:--:|
