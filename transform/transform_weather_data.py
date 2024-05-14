@@ -3,24 +3,33 @@ import os
 from google.cloud import storage
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
-from pyspark.sql import SparkSession
-from pyspark.sql.types import DateType
-from pyspark.sql.functions import col, when, sum as sql_sum
-
+from pyspark.sql.types import DateType, StringType
 
 def replace_nulls(df):
+    """
+    Replaces null values in string columns of a DataFrame with 'Unknown'.
+    
+    Args:
+        df (pyspark.sql.DataFrame): Input DataFrame with possible null values.
+    
+    Returns:
+        pyspark.sql.DataFrame: DataFrame with null values in string columns replaced by 'Unknown'.
+    """
+    # Get the names of all string columns in the DataFrame
     string_columns = [
         field.name
         for field in df.schema.fields
         if isinstance(field.dataType, StringType)
     ]
+    # Replace null values with 'Unknown' for string columns
     filled_df = df.fillna("Unknown", subset=string_columns)
     return filled_df
 
-
+# Load configuration settings from the config file
 with open("config.json", "r") as config_file:
     config = json.load(config_file)
 
+# Initialize a SparkSession with the necessary configurations for BigQuery
 spark = (
     SparkSession.builder.appName("Read BigQuery Table")
     .config(
@@ -31,9 +40,11 @@ spark = (
     .getOrCreate()
 )
 
+# Load raw weather data table from BigQuery
 raw_table = config.get("raw_tables").get("weather_data")
 df = spark.read.format("bigquery").option("table", raw_table).load()
 
+# Select important columns from the DataFrame
 important_columns = [
     "date",
     "elevation",
@@ -54,7 +65,11 @@ important_columns = [
     "wind_gusts_10m",
 ]
 df_selected = df.select(*important_columns)
+
+# Filter rows where 'date' column is not null
 df_filtered = df_selected.filter(col("date").isNotNull())
+
+# Transform the DataFrame by renaming and creating new columns
 df_transformed = df_filtered.withColumnRenamed("date", "weather_timestamp")\
                             .withColumn("weather_timestamp", to_timestamp("weather_timestamp"))\
                             .withColumn("year", year("weather_timestamp"))\
@@ -62,7 +77,7 @@ df_transformed = df_filtered.withColumnRenamed("date", "weather_timestamp")\
                             .withColumn("day", day(col("weather_timestamp")))\
                             .withColumn("hour_of_day", hour(col("weather_timestamp")))
 
-
+# Calculate statistical measures for weather parameters
 stats = df_transformed.select(
     mean(col("rain")).alias("mean_rain"),
     stddev(col("rain")).alias("stddev_rain"),
@@ -76,7 +91,7 @@ mean_rain, stddev_rain = stats.mean_rain, stats.stddev_rain
 mean_snowfall, stddev_snowfall = stats.mean_snowfall, stats.stddev_snowfall
 mean_wind_gusts, stddev_wind_gusts = stats.mean_wind_gusts, stats.stddev_wind_gusts
 
-
+# Categorize weather data based on calculated statistics
 df_transformed = df_transformed.withColumn(
     "rainfall_category",
     when(col("rain") < (mean_rain - stddev_rain), "Low Rainfall")
@@ -90,6 +105,7 @@ df_transformed = df_transformed.withColumn(
     .when(col("snowfall") > (mean_snowfall + stddev_snowfall), "High Snowfall")
     .otherwise("Moderate Snowfall"),
 )
+
 df_transformed = df_transformed.withColumn(
     "wind_gusts_category",
     when(col("wind_gusts_10m") < (mean_wind_gusts - stddev_wind_gusts), "Low Gusts")
@@ -97,18 +113,22 @@ df_transformed = df_transformed.withColumn(
     .otherwise("Moderate Gusts"),
 )
 
+# Round off latitude and longitude values
 df_transformed = df_transformed.withColumn(
     "lattitude", round(col("lattitude").cast("float"), 4)
 ).withColumn("longitude", round(col("longitude").cast("float"), 4))
 
+# Extract numeric values from elevation column and cast to float
 df_transformed = df_transformed.withColumn(
     "elevation_m", regexp_extract(col("elevation"), "\d+\.?\d*", 0).cast("float")
 )
 
+# Format temperature values to two decimal places
 df_transformed = df_transformed.withColumn(
     "temperature_2m", format_number(col("temperature_2m").cast("float"), 2)
 )
 
+# Add weather categories based on various conditions
 df_transformed = (
     df_transformed.withColumn(
         "temperature_category",
@@ -130,8 +150,13 @@ df_transformed = (
     )
 )
 
+# Add a column for year-month timestamp
 df_transformed = df_transformed.withColumn("year_month_ts", to_date(col("year")))
+
+# Replace null values in string columns
 df_transformed = replace_nulls(df_transformed)
+
+# Write the transformed DataFrame back to BigQuery
 prod_table = config.get("prod_tables").get("weather_data")
 df_transformed.write.format("bigquery") \
     .option("table", prod_table) \
@@ -139,4 +164,5 @@ df_transformed.write.format("bigquery") \
     .mode("overwrite") \
     .save()
 
+# Stop the Spark session
 spark.stop()
