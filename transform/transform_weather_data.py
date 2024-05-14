@@ -1,9 +1,15 @@
 import json
-import os
-from google.cloud import storage
+import datetime
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import DateType, StringType
+from pyspark.sql import SparkSession
+from google.cloud import bigquery
+
+
+bq_client = bigquery.Client()
+start_timestamp = datetime.datetime.now()
 
 def replace_nulls(df):
     """
@@ -25,11 +31,18 @@ def replace_nulls(df):
     filled_df = df.fillna("Unknown", subset=string_columns)
     return filled_df
 
-# Load configuration settings from the config file
-with open("config.json", "r") as config_file:
+def store_func_state(table_id, state_json):
+    rows_to_insert = [state_json]
+    errors = bq_client.insert_rows_json(table_id, rows_to_insert)
+    if not errors:
+        print("New rows have been added.")
+    else:
+        print(f"Insert errors: {errors}")
+
+with open('config.json', 'r') as config_file:
     config = json.load(config_file)
 
-# Initialize a SparkSession with the necessary configurations for BigQuery
+#################################################### SPARK TRANSFORMATIONS ####################################################
 spark = (
     SparkSession.builder.appName("Read BigQuery Table")
     .config(
@@ -105,7 +118,41 @@ df_transformed = df_transformed.withColumn(
     .when(col("snowfall") > (mean_snowfall + stddev_snowfall), "High Snowfall")
     .otherwise("Moderate Snowfall"),
 )
+df_transformed = df_filtered.withColumnRenamed("date", "weather_timestamp")\
+                            .withColumn("weather_timestamp", to_timestamp("weather_timestamp"))\
+                            .withColumn("year", year("weather_timestamp"))\
+                            .withColumn("month", month("weather_timestamp"))\
+                            .withColumn("day", day(col("weather_timestamp")))\
+                            .withColumn("hour_of_day", hour(col("weather_timestamp")))
 
+
+stats = df_transformed.select(
+    mean(col("rain")).alias("mean_rain"),
+    stddev(col("rain")).alias("stddev_rain"),
+    mean(col("snowfall")).alias("mean_snowfall"),
+    stddev(col("snowfall")).alias("stddev_snowfall"),
+    mean(col("wind_gusts_10m")).alias("mean_wind_gusts"),
+    stddev(col("wind_gusts_10m")).alias("stddev_wind_gusts"),
+).collect()[0]
+
+mean_rain, stddev_rain = stats.mean_rain, stats.stddev_rain
+mean_snowfall, stddev_snowfall = stats.mean_snowfall, stats.stddev_snowfall
+mean_wind_gusts, stddev_wind_gusts = stats.mean_wind_gusts, stats.stddev_wind_gusts
+
+
+df_transformed = df_transformed.withColumn(
+    "rainfall_category",
+    when(col("rain") < (mean_rain - stddev_rain), "Low Rainfall")
+    .when(col("rain") > (mean_rain + stddev_rain), "High Rainfall")
+    .otherwise("Moderate Rainfall"),
+)
+
+df_transformed = df_transformed.withColumn(
+    "snowfall_category",
+    when(col("snowfall") < (mean_snowfall - stddev_snowfall), "Low Snowfall")
+    .when(col("snowfall") > (mean_snowfall + stddev_snowfall), "High Snowfall")
+    .otherwise("Moderate Snowfall"),
+)
 df_transformed = df_transformed.withColumn(
     "wind_gusts_category",
     when(col("wind_gusts_10m") < (mean_wind_gusts - stddev_wind_gusts), "Low Gusts")
@@ -113,22 +160,18 @@ df_transformed = df_transformed.withColumn(
     .otherwise("Moderate Gusts"),
 )
 
-# Round off latitude and longitude values
 df_transformed = df_transformed.withColumn(
     "lattitude", round(col("lattitude").cast("float"), 4)
 ).withColumn("longitude", round(col("longitude").cast("float"), 4))
 
-# Extract numeric values from elevation column and cast to float
 df_transformed = df_transformed.withColumn(
     "elevation_m", regexp_extract(col("elevation"), "\d+\.?\d*", 0).cast("float")
 )
 
-# Format temperature values to two decimal places
 df_transformed = df_transformed.withColumn(
     "temperature_2m", format_number(col("temperature_2m").cast("float"), 2)
 )
 
-# Add weather categories based on various conditions
 df_transformed = (
     df_transformed.withColumn(
         "temperature_category",
@@ -150,7 +193,6 @@ df_transformed = (
     )
 )
 
-# Add a column for year-month timestamp
 df_transformed = df_transformed.withColumn("year_month_ts", to_date(col("year")))
 
 # Replace null values in string columns
@@ -165,4 +207,22 @@ df_transformed.write.format("bigquery") \
     .save()
 
 # Stop the Spark session
+#################################################### ADD to CATALOG ####################################################
+end_timestamp = datetime.datetime.now()
+processed_rows = rows
+time_taken = end_timestamp - start_timestamp
+
+function_state = {
+            "process_name": "transform-traffic-data",
+            "process_status": "success",
+            "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "time_taken": round(time_taken.seconds, 3),
+            "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "processed_rows": processed_rows
+        }
+
+catalog_table = config["catalog_table"]
+store_func_state(catalog_table, function_state)
+
 spark.stop()

@@ -122,10 +122,6 @@ Ingest Phase Screenshots:
 |:--:|
 | Cloud Functions Fully Set Up |
 
-![Creating Cloud Bucket](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/5e971640-81aa-4d3b-81e6-4fe60d3310fb)
-|:--:|
-| GCS Cloud Bucket Creation |
-
 ![cloud_bucket_creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/2d50b988-904a-4e1e-9912-083e37903c39)
 |:--:|
 | Created GCS Cloud Buckets |

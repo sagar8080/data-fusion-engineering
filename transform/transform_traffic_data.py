@@ -1,18 +1,32 @@
 import json
+import datetime
 
 from pyspark.sql import SparkSession
+from pyspark.sql.types import StringType
 from pyspark.sql.functions import *
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, when, dayofweek, hour, from_unixtime, unix_timestamp, sum as sql_sum
+from google.cloud import bigquery
 
+
+bq_client = bigquery.Client()
+start_timestamp = datetime.datetime.now()
 
 def replace_nulls(df):
     string_columns = [field.name for field in df.schema.fields if isinstance(field.dataType, StringType)]
     filled_df = df.fillna('Unknown', subset=string_columns)
     return filled_df
 
+def store_func_state(table_id, state_json):
+    rows_to_insert = [state_json]
+    errors = bq_client.insert_rows_json(table_id, rows_to_insert)
+    if not errors:
+        print("New rows have been added.")
+    else:
+        print(f"Insert errors: {errors}")
+
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
+
+#################################################### SPARK TRANSFORMATIONS ####################################################
 
 spark = SparkSession.builder \
     .appName("Read BigQuery Table") \
@@ -83,6 +97,7 @@ df = df.withColumn(
 df_transformed = df.withColumn("year_month_ts", to_date(col("year_month_ts")))
 df_transformed = replace_nulls(df_transformed)
 df_transformed.show(10)
+rows = df_transformed.count()
 
 # Write the transformed data to BigQuery, partitioned by year and month
 prod_table = config.get("prod_tables").get("traffic_data")
@@ -93,6 +108,24 @@ df_transformed.write.format("bigquery") \
     .option("partitionType", "MONTH") \
     .mode("overwrite") \
     .save()
+
+#################################################### ADD to CATALOG ####################################################
+end_timestamp = datetime.datetime.now()
+processed_rows = rows
+time_taken = end_timestamp - start_timestamp
+
+function_state = {
+            "process_name": "transform-traffic-data",
+            "process_status": "success",
+            "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "time_taken": round(time_taken.seconds, 3),
+            "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "processed_rows": processed_rows
+        }
+
+catalog_table = config["catalog_table"]
+store_func_state(catalog_table, function_state)
 
 # Stop the Spark session
 spark.stop()
