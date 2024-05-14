@@ -11,13 +11,14 @@ from google.cloud import bigquery
 bq_client = bigquery.Client()
 start_timestamp = datetime.datetime.now()
 
+
 def replace_nulls(df):
     """
     Replaces null values in string columns of a DataFrame with 'Unknown'.
-    
+
     Args:
         df (pyspark.sql.DataFrame): Input DataFrame with possible null values.
-    
+
     Returns:
         pyspark.sql.DataFrame: DataFrame with null values in string columns replaced by 'Unknown'.
     """
@@ -31,6 +32,7 @@ def replace_nulls(df):
     filled_df = df.fillna("Unknown", subset=string_columns)
     return filled_df
 
+
 def store_func_state(table_id, state_json):
     rows_to_insert = [state_json]
     errors = bq_client.insert_rows_json(table_id, rows_to_insert)
@@ -39,7 +41,8 @@ def store_func_state(table_id, state_json):
     else:
         print(f"Insert errors: {errors}")
 
-with open('config.json', 'r') as config_file:
+
+with open("config.json", "r") as config_file:
     config = json.load(config_file)
 
 #################################################### SPARK TRANSFORMATIONS ####################################################
@@ -83,12 +86,14 @@ df_selected = df.select(*important_columns)
 df_filtered = df_selected.filter(col("date").isNotNull())
 
 # Transform the DataFrame by renaming and creating new columns
-df_transformed = df_filtered.withColumnRenamed("date", "weather_timestamp")\
-                            .withColumn("weather_timestamp", to_timestamp("weather_timestamp"))\
-                            .withColumn("year", year("weather_timestamp"))\
-                            .withColumn("month", month("weather_timestamp"))\
-                            .withColumn("day", day(col("weather_timestamp")))\
-                            .withColumn("hour_of_day", hour(col("weather_timestamp")))
+df_transformed = (
+    df_filtered.withColumnRenamed("date", "weather_timestamp")
+    .withColumn("weather_timestamp", to_timestamp("weather_timestamp"))
+    .withColumn("year", year("weather_timestamp"))
+    .withColumn("month", month("weather_timestamp"))
+    .withColumn("day", day(col("weather_timestamp")))
+    .withColumn("hour_of_day", hour(col("weather_timestamp")))
+)
 
 # Calculate statistical measures for weather parameters
 stats = df_transformed.select(
@@ -118,12 +123,14 @@ df_transformed = df_transformed.withColumn(
     .when(col("snowfall") > (mean_snowfall + stddev_snowfall), "High Snowfall")
     .otherwise("Moderate Snowfall"),
 )
-df_transformed = df_filtered.withColumnRenamed("date", "weather_timestamp")\
-                            .withColumn("weather_timestamp", to_timestamp("weather_timestamp"))\
-                            .withColumn("year", year("weather_timestamp"))\
-                            .withColumn("month", month("weather_timestamp"))\
-                            .withColumn("day", day(col("weather_timestamp")))\
-                            .withColumn("hour_of_day", hour(col("weather_timestamp")))
+df_transformed = (
+    df_filtered.withColumnRenamed("date", "weather_timestamp")
+    .withColumn("weather_timestamp", to_timestamp("weather_timestamp"))
+    .withColumn("year", year("weather_timestamp"))
+    .withColumn("month", month("weather_timestamp"))
+    .withColumn("day", day(col("weather_timestamp")))
+    .withColumn("hour_of_day", hour(col("weather_timestamp")))
+)
 
 
 stats = df_transformed.select(
@@ -197,14 +204,12 @@ df_transformed = df_transformed.withColumn("year_month_ts", to_date(col("year"))
 
 # Replace null values in string columns
 df_transformed = replace_nulls(df_transformed)
-
+rows = df_transformed.count()
 # Write the transformed DataFrame back to BigQuery
 prod_table = config.get("prod_tables").get("weather_data")
-df_transformed.write.format("bigquery") \
-    .option("table", prod_table) \
-    .option("temporaryGcsBucket", config.get("util_bucket")) \
-    .mode("overwrite") \
-    .save()
+df_transformed.write.format("bigquery").option("table", prod_table).option(
+    "temporaryGcsBucket", config.get("util_bucket")
+).mode("overwrite").save()
 
 # Stop the Spark session
 #################################################### ADD to CATALOG ####################################################
@@ -213,14 +218,14 @@ processed_rows = rows
 time_taken = end_timestamp - start_timestamp
 
 function_state = {
-            "process_name": "transform-traffic-data",
-            "process_status": "success",
-            "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            "time_taken": round(time_taken.seconds, 3),
-            "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "processed_rows": processed_rows
-        }
+    "process_name": "transform-traffic-data",
+    "process_status": "success",
+    "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+    "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+    "time_taken": round(time_taken.seconds, 3),
+    "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    "processed_rows": processed_rows,
+}
 
 catalog_table = config["catalog_table"]
 store_func_state(catalog_table, function_state)
