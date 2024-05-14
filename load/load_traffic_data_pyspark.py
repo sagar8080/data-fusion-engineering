@@ -1,3 +1,15 @@
+import json
+import datetime
+from argparse import ArgumentParser
+from google.cloud import storage
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, when, to_timestamp
+
+parser = ArgumentParser(description="Arg parser for this dataproc job")
+parser.add_argument("--batch-size", type=int, dest="batch_size", default=10)
+parser.add_argument("--prefix-path", type=str, dest="prefix_path")
+
+
 def create_spark_session(config):
     """
     Create and configure a Spark session.
