@@ -91,28 +91,78 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 ## Application Architecture
 ![Alt text](./architecture_diagram.svg)
 
-## Data Engineering Roadmap
-- To be updated
+1. **Data Ingestion via Cloud Functions**:
+   - **Triggering Cloud Functions**: Leveraging *event-driven architecture* and *serverless computing*, Cloud Functions are scheduled by Cloud Scheduler to fetch data from various external APIs (e.g., Weather Data, Crashes Data, Persons Data, Vehicles Data, Taxi Data, Traffic Data).
+   - **Storing in Landing Zone**: Ingested data is stored as CSV or JSON files in a pre-processed path within the landing zone in Cloud Storage, implementing the *data lake* paradigm.
 
-## Ingest
+2. **Data Storage**:
+   - **Landing to RAW**: Using *distributed computing* and *in-memory processing*, PySpark scripts which are stored in the GCS buckets are referenced by shell scripts in the Code Bucket, run transformation and loading jobs. This process is automated using `CRONTAB` file available on all Linux Distros.
+   - **Raw Dataset Storage**: Processed data is stored in a raw dataset in Cloud Storage, maintaining the *schema-on-read* approach.
 
-The ingest stage involves retrieving data from the following external sources:
-- DOT Traffic Speeds API
-- NYC Open Data APIs for Motor Vehicle Collisions (Persons, Vehicles, Crashes)
-- OpenWeatherMap API for weather data
-- TLC trip data
+3. **Data Transformation and Loading**:
+   - **RAW to Prod Dataset**: Transformed data is loaded from the raw dataset to the production dataset, implementing *ETL (Extract, Transform, Load)* processes. This process is automated using `CRONTAB` file available on all Linux Distros.
 
-The ingest process is automated via Python scripts using standard libraries like `requests` for API calls. The scripts are deployed on Google Cloud using Cloud Functions and trigger on a schedule that ensures data is refreshed every hour.
+4. **Data Monitoring and Management**:
+   - **Data Catalog**: Utilizing *metadata management* and *data governance*, the Data Catalog monitors processes, tracks last fetched timestamps for incremental loading, and ensures data quality and consistency.
 
-Ingest Phase Screenshots:
+5. **Data Visualization**:
+   - **Superset Dashboards**: *Data visualization* tools like Superset were used to create dashboards and charts, which are auto-refreshed at periodic intervals to provide analysis and insights into the data.
+
+## Initial Setup
+
+**Setup and Execution:**
+- Make the script executable: 
+```
+chmod +x setup.sh
+```
+- Run the script: 
+```
+./setup.sh <GCP-PROJECT-ID> <GCP-SERVICE-ACCOUNT>
+```
+
+**Script Operations:**
+
+**Initial Setup and Installation:**
+- Takes two arguments: GCP project ID and service account name.
+- Installs `jq` for handling JSON files on Ubuntu or WSL.
+- Validates and installs `gcloud` CLI if not already installed.
+
+**Google Cloud Authentication and Configuration:**
+- Establishes service accounts and sets up default credentials.
+- Creates a new service account with necessary permissions.
+- Reuses previously generated credentials if the script is rerun.
+
+**Environment Setup for Development:**
+- Ensures Python and `virtualenv` are installed.
+- Installs required Python libraries from `requirements.txt`.
+
+**Infrastructure Setup and Management:**
+- Automates creation of BigQuery datasets, tables, and GCS buckets.
+- Generates a global configuration and uploads Cloud Functions code to GCS.
+- Ensures Terraform is installed for infrastructure as code deployments.
+- Exports necessary environment variables for Terraform.
+
+**Resource Management:**
+- Optionally clears existing resources for a clean state.
+- Executes Terraform scripts to create cloud functions and schedulers for APIs.
+
+**Cleanup and Configuration Management:**
+- Removes configuration files from ingest location for security.
+- Persists Terraform variables in the bash environment.
+
+**Cleanup Bytecode Files:**
+- Removes Python bytecode files (`pycache` and `.pyc`) to keep workspace clean.
+
+**Continuous Integration and Continuous Deployment (CI/CD):**
+- The process can be integrated into a CI/CD pipeline to trigger automatic re-deployments upon updates to the codebase.
 
 ![Setup process](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/6657d1d9-9637-4208-b0a7-4f42c87a5025)
 |:--:|
-| Setting up the Infrastructure using the Setup Script |
+| The infrastructure automation done using the `setup.sh` script |
 
 ![Python Dependencies on Local](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/50161218-3ae1-4421-a33e-01a83f68fe0b)
 |:--:|
-| Installing System Dependencies |
+| It fullfills the standard system dependencies required to run the modules |
 
 ![Cloud Function Creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/adc1054c-1d98-49e8-a39e-3ac705bface9)
 |:--:|
@@ -121,6 +171,34 @@ Ingest Phase Screenshots:
 ![Cloud Function Setup](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/9f5cba9d-5423-4b93-b8ab-8332665620f1)
 |:--:|
 | Cloud Functions Fully Set Up |
+
+![Cloud Scheduler Setup](./screenshots/cloud_scheduler.png)
+|:--:|
+| Cloud Schedulers are up as well |
+
+![code_bucket](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/93015060-fd38-40fe-9d3a-81a1b37a543d)
+|:--:|
+| Code Bucket Creation |
+
+![code_bucket_contents](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/3e0c39bd-4849-4189-803f-ef3997476188)
+|:--:|
+| Code Bucket Contents |
+
+* `Note`: Other GCP infrastructure can also be automated using Terraform but we thought it would be better to create it manually so that we don't forget to shut it down.
+
+## Ingest
+
+These scripts are designed to run as a Google Cloud Function that automates the process of ingesting data from the APIs, processing it, and storing the results in Google Cloud Storage and BigQuery.
+
+1. **Initialization**: The script begins by importing necessary libraries and loading configuration details from a JSON file. It initializes Google Cloud Storage and BigQuery clients and sets up constants for the process.
+
+2. **Fetch Last Offset**: The `fetch_last_offset` function queries BigQuery to determine the most recent timestamp of successfully processed data, which helps in fetching new data incrementally from the API.
+
+3. **Date Handling**: The `get_dates` function converts the retrieved timestamp into start and end dates for data extraction, ensuring that data is fetched in defined time increments (60 days by default).
+
+4. **Data Fetching and Uploading**: The `fetch_data` function constructs an API call to retrieve crash data within the specified date range, while `upload_to_gcs` uploads the fetched data as a CSV file to Google Cloud Storage, handling potential errors gracefully.
+
+5. **State Management and Execution**: The main `execute` function coordinates the entire process, from fetching data to uploading it, and storing the function's state in BigQuery. It captures the execution state, timestamps, and logs any errors, ensuring robust and trackable data processing.
 
 ![cloud_bucket_creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/2d50b988-904a-4e1e-9912-083e37903c39)
 |:--:|
@@ -136,23 +214,17 @@ Ingest Phase Screenshots:
 |:--:|
 | Data Ingestion into the Landing Zone |
 
-![code_bucket](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/93015060-fd38-40fe-9d3a-81a1b37a543d)
-|:--:|
-| Code Bucket Creation |
 
-![code_bucket_contents](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/3e0c39bd-4849-4189-803f-ef3997476188)
-|:--:|
-| Code Bucket Contents |
 
-## Transformation
+## Load and Transform
 
 Data from all sources is transformed into a cohesive data model using DataProc and PySpark. The transformation occurs bi-hourly, dovetailing with the ingest timing to ensure a balance between data freshness and system efficiency. During this stage, data is prepared for analysis, conforming to a relational schema that supports complex queries.
 
-Transformation Phase Screenshots:
+
 
 ![Setting up DataProc Cluster](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/23fbb913-3a74-492b-9e3b-8edc95866cef)
 |:--:|
-| DataProc Cluster Set Up |
+| DataProc Cluster Set Up --- Configuration --- Leader Node: 1 N2-Standard-4 4CPU 16GB --- 2 Worker Nodes: 2 E2-Standard-4 4VCPU 16GB|
 
 ![Setting up Virtual Environment](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/7de095bd-479c-42e4-934c-80f8a0db6f14)
 |:--:|
@@ -194,14 +266,6 @@ Transformation Phase Screenshots:
 
 We use BigQuery as our primary storage technology, chosen for its seamless integration with DataProc and excellent support for SQL queries on large datasets. The database is structured to logically represent our data model, with separate tables for each data source that relate to one another through shared keys.
 
-![data - observability](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/bcfc999b-f58f-472d-9524-8baf133e17a7)
-|:--:|
-| Verifying Offset details Using the Data Observability Table |
-
-![last_20_executions](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/d54c480a-6013-4880-bde4-1a7a6711896f)
-|:--:|
-| Data Observability Table showing last 20 records |
-
 ![pre-processed to processed](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/ee6be573-b3d8-4170-a580-3815afd4a3c3)
 |:--:|
 | Data Storage from Landing Zone (Pre-Processed) to Raw Zone (Processed) |
@@ -212,26 +276,57 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 
 ## Analysis
 
-Our analytical framework consists of predefined SQL queries to explore various hypotheses about traffic congestion, driver behavior, and the impact of weather on taxi demand. Each query corresponds to a potential insight or pattern that could be derived from the combined data.
+- **Weather Statistics of NYC**
+  - Analyzes weather statistics across different boroughs in NYC from 2009 - 2024
 
-## Data Analysis:
-- **Traffic Congestion Analysis**: 
-  - Utilize taxi trip data to identify areas with the highest congestion during different weather conditions and times of day. 
-  - Analyze how traffic speeds correlate with the volume of taxi trips and the severity of collisions.
-- **Driver Behavior and Road Safety**: 
-  - Uncover how weather conditions influence taxi driver behavior and its impact on road safety and correlate them with collision data.
-- **Impact of Inclement Weather on Taxi Demand**: 
-  - Examine how changes in weather conditions affect taxi demand across different parts of NYC. 
-  - Analyze whether there's a correlation between precipitation, temperature, and the frequency of taxi trips.
-- **Route Optimization and Traffic Predictions**: 
-  - Develop predictive models to forecast future traffic congestion based on weather forecasts and historical taxi patterns.
+- **Fatality in High Impact Crashes**
+  - Examines the frequency and distribution of fatalities in high impact crashes across different boroughs from 2016 to 2024.
+
+- **Vehicles Involved in a Crash Year Over Year (YOY)**
+  - Tracks the number of vehicles involved in crashes on a yearly basis.
+
+- **Fatal Crashes in Weather Conditions**
+  - Analyzes the distribution of fatal crashes under different weather conditions.
+
+- **Body Injury and Status Post Crash**
+  - Investigates the relationship between bodily injuries, emotional statuses, and age categories of individuals involved in crashes.
+
+- **High Yielding Factors of Crashes**
+  - Identifies the most common contributing factors leading to crashes.
+
+- **Number of Persons Killed YoY**
+  - Calculates the year-over-year count of persons killed in crashes across different boroughs.
+
+- **Occurrence of High Impact Crashes**
+  - Tracks the monthly occurrence of high impact crashes from 2016 to 2024.
+
+- **Number of Persons Injured**
+  - Computes the monthly count of persons injured in crashes from 2012 to 2024.
+
+- **Contributing Factor for Crashes while Turning**
+  - Identifies the number of crashes occurring while making various types of turns.
+
+- **Categorizing Persons Involved in Crashes**
+  - Categorizes individuals involved in crashes by their person type and age category.
+
+- **Analyzing Traffic Speeds in NYC on Weekdays and Weekends**
+  - Analyzes traffic speed patterns in NYC.
+
+- **Trend of High Impact Crashes YoY**
+  - Examines the yearly trend of high impact crashes across different boroughs.
+
+- **Understanding Pre Crash Condition and Vehicle Damage Afterwards**
+  - Explores the relationship between pre-crash conditions and the extent of vehicle damage post-crash.
+
+- **State-wise Distribution of Crashes**
+  - Analyzes the distribution of high impact crashes based on the state of vehicle registration from 2023 to 2024.
 
 ## Management
 
-Our GitHub repository follows best practices for code management. Commits are small, logical, and contain clear messages. All team members contribute meaningful commits. Code is organized into folders that correspond to each project dimension (Ingest, Transformation, Storage, Analysis).
-
-## Screenshots
-* To be updated
+- Our GitHub repository follows best practices for code management. 
+- Commits are small, logical, and contain clear messages. 
+- All team members contribute meaningful commits. 
+- Code is organized into folders that correspond to each project dimension (Ingest, Transformation, Storage, Analysis).
 
 ## Dashboard
-![Alt text](./superset-dashboard.jpg)
+![Alt text](./data-fusion-dashboard.jpg)
