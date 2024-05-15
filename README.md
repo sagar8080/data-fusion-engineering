@@ -188,7 +188,7 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 
 ## Load and Transform
 
-Data from all sources is transformed into a cohesive data model using DataProc and PySpark. The transformation occurs bi-hourly, dovetailing with the ingest timing to ensure a balance between data freshness and system efficiency. During this stage, data is prepared for analysis, conforming to a relational schema that supports complex queries.
+Data from all sources is transformed into a cohesive data model using DataProc and PySpark.
 
 ### Load Functionality: 
 
@@ -355,12 +355,7 @@ This step is handled by 2 shell scripts.
    - **Data Catalog** (`df_catalog`):
      - Maintains `df_process_catalog`, crucial for managing metadata and ensuring data governance across the process lifecycle.
 
-### **Automation and Data Handling**:
-   - Python scripts are used for straightforward data loads directly into BigQuery for datasets like weather, vehicles, and persons, optimizing the load process.
-
-   - PySpark scripts are crucial for handling datatype transformations and more complex data manipulations, especially for datasets like traffic data that originated in JSON format and required extensive processing. 
-
-   - Our evaluation of Apache Beam versus Apache Spark for these tasks led us to choose Spark due to its superior performance in batch processing environments.
+Note: _Our evaluation of Apache Beam versus Apache Spark for these tasks led us to choose Spark due to its superior performance in batch processing environments_.
    
 
 ![pre-processed zone](./screenshots/landing_zone.png)
@@ -429,11 +424,7 @@ Here is a dashboard that we developed based on the queries accessible in the [an
 ## Key Takeaways
 
 - **Portability**: This project is designed to be portable and used on any Ubuntu platform; it can be your local machine or a compute engine, the setup is initialized in a way that it connects to the GCP resources seamlessly.
-- **BigQuery**: Enabled powerful and scalable analytics on large datasets. Also, seamlessly allowed us to perform direct load operations for some of the datasets, saving time.
-- **Cloud Storage**: Provided secure and durable storage for our data without incurring a lot of cost.
-- **DataProc**: Facilitated efficient data processing with SPARK and also provided a JUPYTERLAB interface to perform some quick testing off the shelf.
-- **Cloud Functions**: Managed serverless operations helped us to extract data from the APIs as quickly as possible.
-- **Cloud Schedulers**: Automated our cloud functions to run once every hour on weekdays between 9 to 5.
+
 - **Opting for Simplicity in Scheduling**: Initially, we considered using Cloud Composer to orchestrate raw and prod loading. However, we realized that for our project's scale and complexity, Shell Scripts and Crontabs provided a more straightforward and equally effective solution. This approach allowed for precise control and scheduling flexibility without the overhead of managing an additional orchestration tool.
 
 - **Intelligent Data Batching**: To manage system resources efficiently and avoid overloading, we implemented intelligent data batching in chunks of 2-3 GB. This strategy ensured smooth and uninterrupted data processing.
@@ -449,9 +440,9 @@ Here is a dashboard that we developed based on the queries accessible in the [an
   5. `ingest-taxi-data`: 6.22 seconds
   6. `ingest-weather-data`: 3.31 seconds
 
-- **Holistic Data Integration**: By integrating diverse datasets — weather, traffic, taxi, and crash data — we were able to gain comprehensive insights into the factors influencing road safety in NYC. This integration helped us uncover important trends and correlations.
+- **Data Integration**: By integrating diverse datasets — weather, traffic, taxi, and crash data — we were able to gain comprehensive insights into the factors influencing road safety in NYC. This integration helped us uncover important trends and correlations.
 
-- **Insightful Visualizations with Dynamic Dashboards**: We leveraged Superset to create dynamic dashboards primarily due to its ease of features and quick integration with Bigquery. This allowed us to build a pretty dashboard for our MBA friends to get wowed about.
+- **Insightful Visualizations**: We leveraged Superset to create dynamic dashboards primarily due to its ease of features and quick integration with Bigquery. This allowed us to build a pretty dashboard for our MBA friends to get wowed about.
 
 ## Management
 - Our GitHub repository follows best practices for python modules including adhering to PEP-8 conventions, docstrings, and comments.
