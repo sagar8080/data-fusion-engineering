@@ -88,6 +88,7 @@ store_tf_vars_in_bash_file() {
     TF_VAR_landing_bucket=$(jq -r '.landing_bucket' "$CONFIG_PATH")
     TF_VAR_code_bucket=$(jq -r '.code_bucket' "$CONFIG_PATH")
     TF_VAR_dataproc_bucket=$(jq -r '.dataproc_bucket' "$CONFIG_PATH")
+    TF_VAR_dataproc_cluster_name=$(jq -r '.dataproc_bucket' "$CONFIG_PATH")
 
     # Append export statements to the .bashrc file
     echo "export TF_VAR_project_id=\"${TF_VAR_project_id}\"" >> ~/.bashrc
@@ -156,8 +157,8 @@ install_python() {
     sudo apt install python3.10
     sudo apt-get install python3-pip
     sudo apt-get install build-essential libssl-dev libffi-dev python-dev
-    alias python=python3
-    alias pip3=pip
+    echo "alias python=python3" >> ~/.bashrc
+    echo "alias pip=pip3" >> ~/.bashrc
 }
 
 
@@ -179,7 +180,7 @@ create_virtualenv() {
 check_and_setup_python_env() {
     read -p "Is Python and virtual environment set up? (y/n) " yn
     if [[ "$yn" == [Yy]* ]]; then
-        read -p "Enter the subpath from root to your virtual environment: " venv_path
+        read -p "Enter the subpath from root to your virtual environment (.venv): " venv_path
         . ~/"$venv_path"/bin/activate
         pip list
     else
@@ -223,6 +224,11 @@ run_terraform() {
     terraform init
     terraform plan
     terraform apply -auto-approve
+}
+
+stop_cluster() {
+    echo "Stopping the Dataproc cluster..."
+    gcloud dataproc clusters stop $CLUSTER_NAME --region=$REGION
 }
 
 # install json reader for WSL to read config file
