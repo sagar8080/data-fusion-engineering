@@ -2,68 +2,19 @@
 # Analyzing the Impact of Weather, Traffic, and Taxi Usage on Road Safety in NYC
 
 ## Table of Contents
-- [Directory Structure](#directory-structure)
+
 - [Background](#background)
-- [Application Architecture](#application-architecture)
-- [Data Engineering Roadmap](#data-engineering-roadmap)
+- [Data Architecture](#application-architecture)
+- [Initial Setup](#initial-setup)
 - [Ingest](#ingest)
-- [Transformation](#transformation)
+- [Load and Transform](#load-and-transform)
 - [Storage](#storage)
 - [Analysis](#analysis)
 - [Management](#management)
 - [Screenshots](#screenshots)
+- [Dashboard](#dashboard)
+- [Key Takeaways](#key-takeaways)
 
-
-## Directory Structure
-
-The repository is organized into several directories, each with a specific purpose in the overall project architecture. 
-Here is an overview of the top-level structure and its contents:
-
-```
-.
-├── README.md
-├── dag
-│   └── dag.py
-├── data_pipelines
-│   ├── landing_to_stage.py
-│   ├── prod_to_analysis.py
-│   └── stage_to_raw_and_prod.py
-├── dir_structure.txt
-├── first_steps.md
-├── ingest
-│   ├── crashes_data
-│   │   ├── main.py
-│   │   └── requirements.txt
-│   ├── persons_data
-│   │   ├── main.py
-│   │   └── requirements.txt
-│   ├── traffic_data
-│   │   ├── main.py
-│   │   └── requirements.txt
-│   ├── vehicles_data
-│   │   ├── main.py
-│   │   └── requirements.txt
-│   └── weather_data
-│       ├── main.py
-│       └── requirements.txt
-├── main.tf
-├── test.py
-├── utils
-│   ├── bigquery.py
-│   ├── dataproc.py
-│   └── zip_files.py
-├── variables.tf
-```
-
-- `README.md`: The comprehensive guide documenting the purpose, structure, and usage of this repository.
-- `dag/`: Contains the `dag.py` script, which orchestrates the data processing workflows as Directed Acyclic Graphs (DAGs).
-- `data_pipelines/`: Scripts for data processing pipelines are located here, including the landing to staging (`landing_to_stage.py`), staging to raw and production (`stage_to_raw_and_prod.py`), and production to analysis (`prod_to_analysis.py`).
-- `dir_structure.txt`: A text file containing the directory structure of the project, for quick reference or documentation purposes.
-- `first_steps.md`: A markdown file that contains instructions or a guide for initial steps in setting up or understanding the project.
-- `ingest/`: This directory contains subdirectories for each data source, such as crashes, persons, traffic, vehicles, and weather data. Each subdirectory includes a `main.py` script for ingesting data from its respective source and a `requirements.txt` file specifying the Python package dependencies. This is essential for cloud functions to be deployed and run appropriately individually.
-- `main.tf`: The main Terraform configuration file that defines the infrastructure as code for provisioning resources on Google Cloud.
-- `utils/`: Utility scripts such as `bigquery.py` for interacting with BigQuery, `dataproc.py` for working with DataProc services, and `zip_files.py`, which can be used for compressing data files.
-- `variables.tf`: Terraform configuration file that defines variables used across the Terraform files in the project.
 
 ## Background
 
@@ -88,7 +39,7 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 - Weather Data -  https://openweathermap.org/api
 - TLC trip data - https://registry.opendata.aws/nyc-tlc-trip-records-pds/
 
-## Application Architecture
+## Data Architecture
 ![Alt text](./architecture_diagram.svg)
 
 1. **Data Ingestion via Cloud Functions**:
@@ -117,7 +68,7 @@ chmod +x setup.sh
 ```
 - Run the script: 
 ```
-./setup.sh <GCP-PROJECT-ID> <GCP-SERVICE-ACCOUNT>
+./setup.sh <GCP-PROJECT-ID> <GCP-SERVICE-ACCOUNT-NAME>
 ```
 
 **Script Operations:**
@@ -138,7 +89,7 @@ chmod +x setup.sh
 
 **Infrastructure Setup and Management:**
 - Automates creation of BigQuery datasets, tables, and GCS buckets.
-- Generates a global configuration and uploads Cloud Functions code to GCS.
+- Generates an unique global configuration and uploads Cloud Functions code to GCS.
 - Ensures Terraform is installed for infrastructure as code deployments.
 - Exports necessary environment variables for Terraform.
 
@@ -155,6 +106,8 @@ chmod +x setup.sh
 
 **Continuous Integration and Continuous Deployment (CI/CD):**
 - The process can be integrated into a CI/CD pipeline to trigger automatic re-deployments upon updates to the codebase.
+
+**Screenshots:**
 
 ![Setup process](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/6657d1d9-9637-4208-b0a7-4f42c87a5025)
 |:--:|
@@ -338,3 +291,5 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 
 ## Dashboard
 ![Alt text](./data-fusion-dashboard.jpg)
+
+## Key Takeaways
