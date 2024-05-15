@@ -311,23 +311,55 @@ This step is handled by 2 shell scripts.
 
 ## Storage
 
-We used BigQuery as our primary storage technology, chosen for its seamless integration with DataProc and excellent support for SQL queries on large datasets. The database is structured to logically represent our data model, with separate tables for each data source that relate to one another through shared keys.
+### **Landing Zone Cloud Storage Bucket**:
 
-1. **Data Structure Design**: The data within BigQuery is organized logically to represent the data model effectively. Each data source, such as crashes, traffic, persons, taxis, and vehicles, has separate tables which are further categorized as follows:
+- **Initial Data Ingestion**: Raw data from various sources is directly stored into the cloud storage bucket upon ingestion. This includes dedicated folders for each data type such as crashes, persons, and traffic, which are organized date-wise folder to enhance manageability and accessibility.
 
-   **Landing Zone (Pre-Processed)**: 
-   Initial raw data from various sources is stored directly as it is ingested. This includes separate folders for each type of data (e.g., crashes, persons, traffic) with a daily partitioning scheme, as seen with folders dated by each day (e.g., 2024-05-08, 2024-05-07, etc.). Data is segmented into daily batches within the `df_raw` bucket, allowing for effective date-based management and querying.
+- **Pre-Processed Data Organization**: Data within the `pre-processed` folder of the landing bucket is segmented into daily batches, allowing for systematic tracking and management. 
 
-   **Processed Data Zone**:
-   After initial ingestion and any required preprocessing, data is moved to the `df_prod` bucket, where it is ready for use in production environments. This processed data is still categorized by data type but optimized for performance and query efficiency. This data is further used for detailed analytics.
+- **Post-Processing and Optimization**: After undergoing necessary preprocessing, data is transitioned to the `processed` folder within the same bucket in parquet format.
 
-2. **Data Catalog**: Maintaining a process catalog (`df_process_catalog`).0 helps in managing metadata and ensuring that data governance and lineage are traceable.
+### **BigQuery Data Organization**:
 
-3. **Automation & Scripting**: Automated scripts facilitate the data migration from the landing zone to the raw and processed zones as needed. Additionally, Python scripts automate direct data loading into BigQuery for weather, vehicles, and persons data, while PySpark scripts handle datatype casting. For traffic data, initially received in JSON format and requiring extra processing, we evaluated both Apache Beam and Apache Spark, ultimately choosing Spark as the more suitable solution for our needs.
+- **Logical Structure and Data Model Representation**:
+   - Our BigQuery setup is meticulously structured to logically represent the data models, facilitating seamless integration with DataProc and supporting robust SQL querying capabilities on large datasets.
+   
+   - **Raw Dataset** (`df_raw`):
+     - Contains unprocessed, raw data directly from ingestion, serving as the foundational layer for all transformations. Specific datasets include:
+       - `df_crashes_data_raw`: Details on traffic crashes.
+       - `df_persons_data_raw`: Information on individuals involved in incidents.
+       - `df_taxi_data_raw`: Data from TLC concerning taxi trips.
+       - `df_traffic_data_raw`: Traffic flow and congestion data.
+       - `df_vehicles_data_raw`: Information on vehicles involved in crashes.
+       - `df_weather_data_raw`: Weather conditions affecting city dynamics.
+   
+   - **Production Dataset** (`df_prd`):
+     - Hosts transformed and cleansed data, ready for in-depth analysis and reporting:
+       - `df_crashes_data_prd`: Analytical-ready crashes data.
+       - `df_persons_data_prd`: Curated data on persons involved.
+       - `df_taxi_data_prd`: Insights into taxi service usage.
+       - `df_traffic_data_prd`: Traffic analysis-ready data.
+       - `df_vehicles_data_prd`: Data on vehicles, post-transformation.
+       - `df_weather_data_prd`: Weather data for advanced analytics.
+   
+   - **Data Catalog** (`df_catalog`):
+     - Maintains `df_process_catalog`, crucial for managing metadata and ensuring data governance across the process lifecycle.
+
+### **Automation and Data Handling**:
+   - Python scripts are used for straightforward data loads directly into BigQuery for datasets like weather, vehicles, and persons, optimizing the load process.
+
+   - PySpark scripts are crucial for handling datatype transformations and more complex data manipulations, especially for datasets like traffic data that originated in JSON format and required extensive processing. 
+
+   - Our evaluation of Apache Beam versus Apache Spark for these tasks led us to choose Spark due to its superior performance in batch processing environments.
+   
+
+![pre-processed zone](./screenshots/landing_zone.png)
+|:--:|
+| Data Storage in the Landing Zone (Pre-Processed) |
 
 ![pre-processed to processed](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/ee6be573-b3d8-4170-a580-3815afd4a3c3)
 |:--:|
-| Data Storage from Landing Zone (Pre-Processed) to Raw Zone (Processed) |
+| Moving the file from Landing Zone (Pre-Processed) to (Processed) |
 
 ![bigquery_tables](./screenshots/prod_tables.png)
 |:--:|
