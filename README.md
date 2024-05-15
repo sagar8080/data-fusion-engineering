@@ -20,9 +20,9 @@
 - [Load and Transform](#load-and-transform)
 - [Storage](#storage)
 - [Analysis](#analysis)
-- [Management](#management)
 - [Dashboard](#dashboard)
 - [Key Takeaways](#key-takeaways)
+- [Management](#management)
 
 
 ## Background
@@ -154,6 +154,14 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 
 5. **State Management and Execution**: The main `execute` function coordinates the entire process, from fetching data to uploading it, and storing the function's state in BigQuery. It captures the execution state, timestamps, and logs any errors, ensuring robust and trackable data processing.
 
+6. **Scheduling**: 
+
+   - The functions each run in response to an HTTPS trigger provided by the cloud scheduler. We decided to set the schedule interval to 9AM to 5PM Monday to Friday EST, meaning each cloud function gets triggered at least 8 times a day. Depending upon the size of the dataset, we calculated the number of executions necessary and scheduled them at the said intervals. 
+
+   - For e.g. while fetching traffic data, even a month worth of data in flat file format overwhelmed the initial 2GB cloud function memory, prompting us to reduce the number of days fetched at once from 30 to 15 and increasing the number of executions per hour. 
+   
+   - One can further customize the data pulled by calculating the number of executions from the start_date to current_date, divide it by `DAY_DELTA` variable in the traffic_data [cloud function](./ingest/traffic_data/main.py)
+
 ![cloud_bucket_creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/2d50b988-904a-4e1e-9912-083e37903c39)
 |:--:|
 | Created GCS Cloud Buckets |
@@ -176,17 +184,90 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 
 Data from all sources is transformed into a cohesive data model using DataProc and PySpark. The transformation occurs bi-hourly, dovetailing with the ingest timing to ensure a balance between data freshness and system efficiency. During this stage, data is prepared for analysis, conforming to a relational schema that supports complex queries.
 
-1. **Data Proc Initialization**: Initialize a DataProc cluster within the Google Cloud (GCP) environment to enable effective communication between data nodes and facilitate batch processing.
+### Load Script: [crashes_data](./load/load_crashes_data_pyspark.py)
 
-2. **Virtual Machine Setup**: Set up a Google Compute Engine (GCE) VM equipped with necessary compute resources to host and execute data loading and transformation scripts, utilizing CRON expressions for robust scheduling across any infrastructure.
+**1. Configurable Data Ingestion:**
+   - The script utilizes `argparse` to accept command-line parameters, allowing the configuration of batch sizes and file prefix paths for selective data processing. 
+   - This flexibility supports different operational needs and data volumes.
 
-3. **Batch Loading**: Utilize the `run_load_to_raw.sh`  shell script for moving data from the landing zone into the raw data zone. This script manages the initialization of the cluster, batch loads data into the code bucket and BigQuery, and terminates the cluster post-successful execution. This script is also tested locally to ensure consistent execution across various environments. This Batch Loading Script is run once daily on a defined schedule using using `CRONTAB` file available on all Linux Distros.
+**2. Batch Processing of Files:**
+   - Files from Google Cloud Storage are listed and batched based on size, a process that ensures efficient memory management and system performance during data loads. 
+   - The script batches files up to a specified gigabyte limit, preparing them for sequential processing.
 
-4. **PySpark Job Creation**: Develop and deploy PySpark scripts on the DataProc cluster to handle more intricate data transformations and processing tasks.
+**3. Spark Session**
+   - A Spark session is initialized with necessary configurations, including dependencies for integrating Spark with BigQuery. 
+   - This session facilitates the distributed processing of data, crucial for handling large datasets efficiently.
 
-5. **Transformation to Production Data**: The `run_transformation.sh` shell script is used to refine raw data into production-ready data sets. This script coordinates the execution of PySpark scripts and, similar to other scripts, is also tested locally to validate its performance in different environments. The Transformation Script is run once daily on a defined schedule `CRONTAB` file available on all Linux Distros.
+**4. Data Transformation and Type Casting:**
+   - Before loading to BigQuery, the data undergoes transformations where necessary columns are cast to appropriate data types (e.g., integers and timestamps), ensuring data integrity and compatibility with the target schema in BigQuery.
 
-6. **Monitoring & Optimization**: Continuously monitor the performance of both the DataProc cluster and the Compute Engine VM, as well as script executions, using GCP's monitoring tools. This monitoring assists in adjusting compute resources and optimizing script execution to enhance processing speed and resource efficiency.
+**5. Efficient Data Loading to BigQuery:**
+   - Transformed data is loaded into BigQuery using Spark’s BigQuery connector, which allows direct data writing from Spark DataFrames to BigQuery tables, optimizing the load process and maintaining data consistency.
+
+### Transformation Script: [crashes_data](./transform/transform_crashes_data.py)
+
+**1. Data Cleaning and Null Handling:**
+   - The script includes a function to replace null values in string columns with a default text ('Unknown'), standardizing the data for analysis and preventing issues related to missing data during analytical processes.
+
+**2. Data Enrichment with Date and Time Features:**
+   - Additional columns related to time (year, month, day) are derived from the `crash_date` to facilitate time-based analysis. 
+   - This transformation enables more detailed insights into trends and patterns over time.
+
+**3. Calculation of Additional Metrics:**
+   - New metrics such as `was_fatal` (indicating if the crash was fatal) and `total_vehicles_involved` (summing vehicles involved) are calculated, enhancing the dataset with derived attributes that support more nuanced analyses.
+
+**4. Handling Categorical Data:**
+   - The script ensures that vehicle involvement is quantified, transforming categorical vehicle type data into numerical indicators (0 or 1) for each vehicle involved. This transformation is crucial for subsequent analytical models that require numerical input.
+
+**5. Optimized Data Storage in BigQuery:**
+   - The transformed dataset is written to BigQuery, partitioned by `year` and `month` to optimize query performance and cost-efficiency. Partitioning helps in managing and querying large datasets by limiting the data scanned during queries.
+
+### Scheduling and Job execution
+This step is handled by 2 shell scripts.
+
+#### Loading [Shell Script](./run_load_to_raw.sh) Explanation
+
+**1. Scheduled Execution:**
+   - The loading shell script is scheduled to run daily at 6 PM on weekdays, leveraging crontab for automation. 
+   - This ensures that data loading operations are performed consistently outside of peak hours to minimize system load during high-traffic periods.
+
+**2. Environment Setup and Dependency Management:**
+   - Before executing, the script checks and sets necessary environment variables, such as the Google Cloud project ID. This must have been handled in the initial setup prior to this execution.
+   - It also configures paths to necessary configuration files and buckets, ensuring that all operations are executed within the correct project and data environment.
+
+**3. Cluster Management:**
+   - The script manages the lifecycle of a Dataproc cluster, starting and stopping it as needed. 
+   - This efficient management of resources helps control costs and improves performance by ensuring that the cluster is only running when necessary.
+
+**4. Data Loading Operations:**
+   - It performs data loads through a series of PySpark jobs for different datasets (traffic, taxi, crashes data). 
+   - Each job is submitted to the Dataproc cluster, handling large datasets effectively using Spark’s distributed computing capabilities.
+
+**5. Direct Data Loads:**
+   - For certain datasets like weather, persons, and vehicles data, the script uses a Python script for direct loading into BigQuery, showcasing a flexible approach to data handling and ingestion depending on the data type and source.
+
+#### Transformation [Shell Script](./run_transformations.sh) Explanation
+
+**1. Scheduled Transformation Jobs:**
+   - The transformation script is set to run daily at 7 PM on weekdays, scheduled via crontab. 
+   - This timing ensures that all data loaded during the previous hour is promptly transformed, maintaining data freshness and readiness for analysis.
+
+**2. Cluster Startup and Job Submission:**
+   - Similar to the load script, this script handles starting the Dataproc cluster and submits multiple PySpark jobs for transforming various data types (persons, crashes, vehicles, traffic, weather).
+   - Each transformation script is tailored to specific data needs, enhancing data quality and structure for analytical uses.
+
+**3. Job Monitoring and Management:**
+   - Each PySpark job is identified with a unique job ID, which facilitates monitoring and managing jobs in the Dataproc cluster.
+   - This level of detail in job management aids in troubleshooting and provides clear traceability for operations performed on the data.
+
+**4. Resource Optimization:**
+   - The script ensures the cluster is run only when needed and stopping it post-transformation, which is crucial for managing costs and resource consumption in cloud environments.
+
+**5. Detailed Logging and Output:**
+   - Throughout the script, detailed logs are provided for each step, from cluster management to job submission.
+
+`Note` - TThe screenshots below illustrate the cluster creation and job execution processes during some of our initial runs. These were a part of an experimental phase where we explored a menu-driven approach for our shell scripts. We aimed to demonstrate how this method aligns with our scheduled operations. Unfortunately, we had to repeat the ingestion process, which incurred additional costs. This necessity arose from our desire to refine the process to ensure optimal performance and cost-efficiency in a production environment.
+
 
 ![Setting up DataProc Cluster](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/23fbb913-3a74-492b-9e3b-8edc95866cef)
 |:--:|
@@ -230,7 +311,7 @@ Data from all sources is transformed into a cohesive data model using DataProc a
 
 ## Storage
 
-We use BigQuery as our primary storage technology, chosen for its seamless integration with DataProc and excellent support for SQL queries on large datasets. The database is structured to logically represent our data model, with separate tables for each data source that relate to one another through shared keys.
+We used BigQuery as our primary storage technology, chosen for its seamless integration with DataProc and excellent support for SQL queries on large datasets. The database is structured to logically represent our data model, with separate tables for each data source that relate to one another through shared keys.
 
 1. **Data Structure Design**: The data within BigQuery is organized logically to represent the data model effectively. Each data source, such as crashes, traffic, persons, taxis, and vehicles, has separate tables which are further categorized as follows:
 
@@ -258,6 +339,8 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 
 ## Analysis
 
+The combined data model is housed in the [combined_data_model](./analyze/combined_data_model.sql) file under the [analyze](./analyze/) section of the repository and contains the SQL query developed to frame this combined model.
+
 ### Combined Data Model
 
 - The `df_unified_crashes_model` table aggregates crash data, persons data, and vehicles data into a unified schema.
@@ -273,6 +356,8 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 ----
 
 ### In-Depth Analytics Performed
+
+The SQL scripts housed in the [analytical_queries](./analyze/analytical_queries.sql) file of the repository provides in-depth SQL queries to find the answers to our analytical questions with a further scope provided by the [potential_queries](./analyze/potential_analysis.sql) file.
 
 #### Weather Statistics of NYC
 - **Question:** What are the average weather conditions in each borough of NYC between 2009 and 2024?
@@ -334,24 +419,19 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 - **Question:** How are high impact crashes distributed across different states based on vehicle registration from 2023 to 2024?
 - **Answer:** A pie chart shows the state-wise distribution of high impact crashes, focusing on the state of vehicle registration from 2023 to 2024.
 
-## Management
-
-- Our GitHub repository follows best practices for code management. 
-- Commits are small, logical, and contain clear messages. 
-- All team members contribute meaningful commits. 
-- Code is organized into folders that correspond to each project dimension (Ingest, Transformation, Storage, Analysis).
-
 ## Dashboard
+Here is a dashboard that we developed using Apache Superset based on the queries above. We decided to go with Superset because of it's advanced visualizations, ease of use, better flexibility over Looker. 
+
 ![Alt text](./data-fusion-dashboard.jpg)
 
 ## Key Takeaways
 
+- **Portability**: This project is designed to be portable and used on any Ubuntu platform; it can be your local machine or a compute engine, the setup is initialized in a way that it connects to the GCP resources seamlessly.
 - **BigQuery**: Enabled powerful and scalable analytics on large datasets. Also, seamlessly allowed us to perform direct load operations for some of the datasets, saving time.
 - **Cloud Storage**: Provided secure and durable storage for our data without incurring a lot of cost.
 - **DataProc**: Facilitated efficient data processing with SPARK and also provided a JUPYTERLAB interface to perform some quick testing off the shelf.
 - **Cloud Functions**: Managed serverless operations helped us to extract data from the APIs as quickly as possible.
 - **Cloud Schedulers**: Automated our cloud functions to run once every hour on weekdays between 9 to 5.
-
 - **Opting for Simplicity in Scheduling**: Initially, we considered using Cloud Composer to orchestrate raw and prod loading. However, we realized that for our project's scale and complexity, Shell Scripts and Crontabs provided a more straightforward and equally effective solution. This approach allowed for precise control and scheduling flexibility without the overhead of managing an additional orchestration tool.
 
 - **Intelligent Data Batching**: To manage system resources efficiently and avoid overloading, we implemented intelligent data batching in chunks of 2-3 GB. This strategy ensured smooth and uninterrupted data processing.
@@ -370,3 +450,9 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 - **Holistic Data Integration**: By integrating diverse datasets — weather, traffic, taxi, and crash data — we were able to gain comprehensive insights into the factors influencing road safety in NYC. This integration helped us uncover important trends and correlations.
 
 - **Insightful Visualizations with Dynamic Dashboards**: We leveraged Superset to create dynamic dashboards primarily due to its ease of features and quick integration with Bigquery. This allowed us to build a pretty dashboard for our MBA friends to get wowed about.
+
+## Management
+- Our GitHub repository follows best practices for python modules including adhering to PEP-8 conventions, docstrings, and comments.
+- Commits are small, logical, and contain clear messages. 
+- All team members contribute meaningful commits.
+- Code is organized into folders that correspond to each project dimension (Ingest, Transformation, Storage, Analysis).
