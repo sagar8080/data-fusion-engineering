@@ -1,17 +1,26 @@
 
 # Analyzing the Impact of Weather, Traffic, and Taxi Usage on Road Safety in NYC
 
+```
+    ____          __            ______              _             
+   / __ \ ____ _ / /_ ____ _   / ____/__  __ _____ (_)____   ____ 
+  / / / // __ `// __// __ `/  / /_   / / / // ___// // __ \ / __ \
+ / /_/ // /_/ // /_ / /_/ /  / __/  / /_/ /(__  )/ // /_/ // / / /
+/_____/ \__,_/ \__/ \__,_/  /_/     \__,_//____//_/ \____//_/ /_/ 
+
+- In the storm of data, we fuse insights for safer paths.
+```
+
 ## Table of Contents
 
 - [Background](#background)
-- [Data Architecture](#application-architecture)
+- [Data Architecture](#data-architecture)
 - [Initial Setup](#initial-setup)
 - [Ingest](#ingest)
 - [Load and Transform](#load-and-transform)
 - [Storage](#storage)
 - [Analysis](#analysis)
 - [Management](#management)
-- [Screenshots](#screenshots)
 - [Dashboard](#dashboard)
 - [Key Takeaways](#key-takeaways)
 
@@ -36,8 +45,8 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 - Motor Vehicle Collisions (Persons) - https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Person/f55k-p6yu/about_data
 - Motor Vehicle Collisions (Vehicles) - https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Vehicles/bm4k-52h4/about_data
 - Motor Vehicle Collisions (Crashes) - https://data.cityofnewyork.us/Public-Safety/Motor-Vehicle-Collisions-Crashes/h9gi-nx95/about_data
-- Weather Data -  https://openweathermap.org/api
-- TLC trip data - https://registry.opendata.aws/nyc-tlc-trip-records-pds/
+- Weather Data -  https://open-meteo.com/
+- TLC trip data - https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page
 
 ## Data Architecture
 ![Alt text](./architecture_diagram.svg)
@@ -53,11 +62,16 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 3. **Data Transformation and Loading**:
    - **RAW to Prod Dataset**: Transformed data is loaded from the raw dataset to the production dataset, implementing *ETL (Extract, Transform, Load)* processes. This process is automated using `CRONTAB` file available on all Linux Distros.
 
-4. **Data Monitoring and Management**:
+4. **Scheduling**: 
+    - The cloud functions are scheduled by cloud schedulers to run every hour between 9AM to 5PM EST from Monday to Friday.
+    - The LANDING to RAW shell script is scheduled by crontab and cron expressions on Compute Engine to run at 6 PM EST from Monday to Friday.
+    - The RAW to PROD shell script is scheduled by crontab and cron expressions on Compute Engine to run at 7 PM EST from Monday to Friday.
+
+5. **Data Monitoring and Management**:
    - **Data Catalog**: Utilizing *metadata management* and *data governance*, the Data Catalog monitors processes, tracks last fetched timestamps for incremental loading, and ensures data quality and consistency.
 
-5. **Data Visualization**:
-   - **Superset Dashboards**: *Data visualization* tools like Superset were used to create dashboards and charts, which are auto-refreshed at periodic intervals to provide analysis and insights into the data.
+6. **Data Visualization**:
+   - We leveraged open-source `Apache Superset` installing it on compute engine and local systems, to create dashboards and charts, which are auto-refreshed at periodic intervals.
 
 ## Initial Setup
 
@@ -198,7 +212,7 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
    **Processed Data Zone**:
    After initial ingestion and any required preprocessing, data is moved to the `df_prod` bucket, where it is ready for use in production environments. This processed data is still categorized by data type but optimized for performance and query efficiency. This data is further used for detailed analytics.
 
-2. **Data Catalog**: Maintaining a process catalog (`df_process_catalog`) helps in managing metadata and ensuring that data governance and lineage are traceable.
+2. **Data Catalog**: Maintaining a process catalog (`df_process_catalog`).0 helps in managing metadata and ensuring that data governance and lineage are traceable.
 
 3. **Automation & Scripting**: Automated scripts facilitate the data migration from the landing zone to the raw and processed zones as needed. Additionally, Python scripts automate direct data loading into BigQuery for weather, vehicles, and persons data, while PySpark scripts handle datatype casting. For traffic data, initially received in JSON format and requiring extra processing, we evaluated both Apache Beam and Apache Spark, ultimately choosing Spark as the more suitable solution for our needs.
 
@@ -209,6 +223,10 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 ![bigquery_tables](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/b40667c9-0910-4c01-86de-e832df9ce6a1)
 |:--:|
 | BigQuery Tables |
+
+![unified model preview](./screenshots/unified_crash_model.png)
+|:--:|
+| Unified Crash Data Table Preview |
 
 ## Analysis
 
