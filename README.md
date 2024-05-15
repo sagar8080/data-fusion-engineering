@@ -1,6 +1,3 @@
-
-# Analyzing the Impact of Weather, Traffic, and Taxi Usage on Road Safety in NYC
-
 ```
     ____          __            ______              _             
    / __ \ ____ _ / /_ ____ _   / ____/__  __ _____ (_)____   ____ 
@@ -10,6 +7,22 @@
 
 - In the storm of data, we fuse insights for safer paths.
 ```
+
+# Analyzing the Impact of Weather, Traffic, and Taxi Usage on Road Safety in NYC
+
+## Team Description
+
+- Team Name: Group 1
+
+| **Member Name**   |
+|-------------------|
+| Sagar Das         |
+| Ninad Kale        |
+| Sadaf Davre       |
+| Dhiraj Lahoti     |
+| Pranav Adiraju    |
+
+---
 
 ## Table of Contents
 
@@ -82,7 +95,7 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 ## Initial Setup
 
 **Setup and Execution:**
-- Make the script executable: 
+- Make the script [setup.sh](./setup.sh) executable: 
 ```
 chmod +x setup.sh
 ```
@@ -108,14 +121,14 @@ chmod +x setup.sh
 - Installs required Python libraries from `requirements.txt`.
 
 **Infrastructure Setup and Management:**
-- Automates creation of BigQuery datasets, tables, and GCS buckets.
+- This [util script](./utils/create_infra.py) is a part of the setup pieline and aids in the creation of BigQuery datasets and GCS buckets.
 - Generates an unique global configuration and uploads Cloud Functions code to GCS.
 - Ensures Terraform is installed for infrastructure as code deployments.
 - Exports necessary environment variables for Terraform.
 
 **Resource Management:**
 - Optionally clears existing resources for a clean state.
-- Executes Terraform scripts to create cloud functions and schedulers for APIs.
+- Executes Terraform scripts to create cloud functions and schedulers for APIs found in the [terraform file](./main.tf)
 
 **Cleanup and Configuration Management:**
 - Removes configuration files from ingest location for security.
@@ -148,7 +161,7 @@ chmod +x setup.sh
 
 ## Ingest
 
-These scripts are designed to run as a Google Cloud Function that automates the process of ingesting data from the APIs, processing it, and storing the results in Google Cloud Storage and BigQuery.
+The ingest scripts [accessible here](./ingest/) are designed to run as a Google Cloud Function that automates the process of ingesting data from the APIs, processing it, and storing the results in Google Cloud Storage and BigQuery. For ease of explanation, we are considering the [traffic data](./ingest/traffic_data/) cloud function.
 
 1. **Initialization**: The script begins by importing necessary libraries and loading configuration details from a JSON file. It initializes Google Cloud Storage and BigQuery clients and sets up constants for the process.
 
@@ -166,7 +179,7 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 
    - For e.g. while fetching traffic data, even a month worth of data in flat file format overwhelmed the initial 2GB cloud function memory, prompting us to reduce the number of days fetched at once from 30 to 15 and increasing the number of executions per hour. 
    
-   - One can further customize the data pulled by calculating the number of executions from the start_date to current_date, divide it by `DAY_DELTA` variable in the traffic_data **[cloud function](./ingest/traffic_data/main.py)** | Rest of the cloud functions are accessible **[here](./ingest/)**.
+   - One can further customize the data pulled by calculating the number of executions from the start_date to current_date, divide it by `DAY_DELTA` variable in the traffic_data **[cloud function](./ingest/traffic_data/main.py)** | Rest of the cloud functions can be accessed **[here](./ingest/)**.
 
 ![cloud_bucket_creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/2d50b988-904a-4e1e-9912-083e37903c39)
 |:--:|
@@ -188,7 +201,7 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 
 ## Load and Transform
 
-Data from all sources is transformed into a cohesive data model using DataProc and PySpark.
+Data from all sources is transformed into a cohesive data model using DataProc and PySpark. The loading scripts can be found in the [load](./load/) directory.
 
 ### Load Functionality: 
 
@@ -213,6 +226,8 @@ Example: **[crashes_data](./load/load_crashes_data_pyspark.py)** | Remaining scr
    - Transformed data is loaded into BigQuery using Spark’s BigQuery connector, which allows direct data writing from Spark DataFrames to BigQuery tables, optimizing the load process and maintaining data consistency.
 
 ### Transformation Functionality: 
+
+The transformation scripts can be found in the [transform](./transform/) directory.
 
 Example: **[crashes_data](./transform/transform_crashes_data.py)** | Remaining Scripts can be found **[here](./transform/)**
 
