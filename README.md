@@ -51,45 +51,32 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 ## Data Architecture
 ![Alt text](./data_fusion_architecture.svg)
 
-### GCP Resources Utilized:
-- Cloud Functions
-- Cloud Schedulers
-- Cloud Storage Buckets
-- Compute Engine
-- Dataproc clusters
-- Dataflow _(experimental) discarded later in the favour of dataproc_
 
-### Brief Explanation:
+### GCP Resources Utilized
 
-1. **Compute Engine**: 
-   - We provisioned a cost-optimal E2 compute engine to run the project on. It provided a clean-slate to setup project dependencies, run shell scripts operating dataproc jobs, and dashboard visualizations by installing superset on it.
+| **Resource**          | **Usage and Configuration**                                                                                                            |
+|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| **Compute Engine**    | Used for running shell scripts for Dataproc job management and hosting Superset for dashboard visualizations.                         |
+| **Cloud Functions**   | Event-driven, serverless functions triggered by Cloud Scheduler to fetch and ingest data from external APIs.                           |
+| **Cloud Scheduler**   | Schedules Cloud Functions for data ingestion.                                                                                          |
+| **Cloud Storage**     | Stores ingested data in a 'pre-processed' path and processed data in a 'processed' path, forming a data lake structure.                |
+| **Dataproc Clusters** | Managed clusters used to run PySpark jobs for data processing and transformations.                                                     |
+| **Dataflow**          | Initially used experimentally for stream and batch data processing but later discarded in favor of Dataproc.                           |
 
-   -  `Note` _We also ran this locally using WSL2 which mimics the compute engine environment_
+### Detailed Workflow Explanation
 
-2. **Data Ingestion via Cloud Functions**:
-   - Leveraging *event-driven architecture* and *serverless computing*, Cloud Functions are scheduled by Cloud Scheduler to fetch data from various external APIs (e.g., Weather Data, Crashes Data, Persons Data, Vehicles Data, Taxi Data, Traffic Data).
+| **Step**                  | **Details**                                                                                                                            |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| **1. Compute Engine**     | - Provides a cost-optimized E2 compute instance.<br> - Runs shell scripts for Dataproc job execution and hosts Superset.              |
+| **2. Data Ingestion**     | - Cloud Functions, triggered by Cloud Scheduler, fetch data from APIs.<br> - Data stored as CSV/JSON in Cloud Storage.                 |
+| **3. Data Storage**       | - Utilizes a schema-on-read approach with Cloud Storage and BigQuery.<br> - Data is loaded directly to BigQuery or processed via Spark.|
+| **4. Data Transformation**| - PySpark scripts transform data in Dataproc clusters.<br> - Transformed data is loaded into BigQuery's production datasets.           |
+| **5. Scheduling**         | - Cloud Scheduler runs ingestion functions hourly, 9AM-5PM EST on weekdays.<br> - Compute Engine scripts run at 6PM and 7PM EST.       |
+| **6. Data Monitoring**    | - Data Catalog tracks processes, manages metadata, and ensures data consistency.                                                       |
 
-   - Ingested data is stored as CSV or JSON files in a pre-processed path within the landing zone in Cloud Storage, implementing the *data lake* paradigm.
-
-3. **Data Storage**:
-   - Raw data from cloud storage bucket is consumed following a _schema-on-read_ approach 
-      - Direct load to bigquery utilizing the fast big query load configuration 
-      - Utilizing pyspark scripts to process data in the pre-processed layer to raw datasets on BQ.
-
-   - Processed data is also moved to a `processed` path on the landing bucket.
-
-4. **Data Transformation and Loading**:
-   - Data present in the raw dataset is transformed using custom pyspark jobs and loaded into a production dataset, implementing the *ETL (Extract, Transform, Load)* processes.
-
-5. **Scheduling**: 
-    - The cloud functions are scheduled by cloud schedulers to run every hour between `9AM to 5PM EST from Monday to Friday`
-
-    - The LANDING to RAW shell script is scheduled by crontab and cron expressions on Compute Engine to run at `6 PM EST from Monday to Friday`
-
-    - The RAW to PROD shell script is scheduled by crontab and cron expressions on Compute Engine to run at `7 PM EST from Monday to Friday`
-
-6. **Data Monitoring and Management**:
-   - **Data Catalog**: Utilizing *metadata management* and *data governance*, the Data Catalog monitors processes, tracks last fetched timestamps for incremental loading, and ensures data quality and consistency.
+### Notes
+- **Local Development**: The environment is also replicated locally using WSL2, mimicking Compute Engine settings for development purposes.
+- **Data Transformation**: Dataflow was initially considered for processing but was replaced by Dataproc for better integration with existing workflows.
 
 
 ## Initial Setup
