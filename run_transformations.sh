@@ -2,8 +2,9 @@
 
 ################################# TO SET THIS ON A SCHEDULE; DO THIS: ###################################
 #   crontab -e                                                                                          #
-#   * */11 * * *  -- Runs twice daily                                                                   #
+#   0 19 * * 1-5 path/to/script  -- Runs once daily                                                     #
 #########################################################################################################
+
 
 # Environment Variables
 CONFIG_PATH="utils/config.json"
