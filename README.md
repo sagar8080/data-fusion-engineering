@@ -115,6 +115,30 @@ chmod +x setup.sh
 - Removes configuration files from ingest location for security.
 - Persists Terraform variables in the bash environment.
 
+![Setup process](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/6657d1d9-9637-4208-b0a7-4f42c87a5025)
+|:--:|
+| Setting up the Infrastructure using the Setup Script |
+
+![Python Dependencies on Local](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/50161218-3ae1-4421-a33e-01a83f68fe0b)
+|:--:|
+| Installing System Dependencies |
+
+![Cloud Function Creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/adc1054c-1d98-49e8-a39e-3ac705bface9)
+|:--:|
+| Cloud Functions Creation |
+
+
+![Cloud Function Setup](./screenshots/cloud_functions_setup.png)
+|:--:|
+| Cloud Functions Fully Set Up |
+
+![Cloud Scheduler Setup](./screenshots/cloud_scheduler.png)
+|:--:|
+| Cloud Schedulers are Fully Set Up |
+
+![Contents Placed Inside Code Bucket](./screenshots/code_bucket.png)
+|:--:|
+| Contents Inside Code Bucket |
 
 ## Ingest
 
@@ -134,6 +158,10 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 |:--:|
 | Created GCS Cloud Buckets |
 
+![cloud_function_execution](./screenshots/cloud_function.png)
+|:--:|
+| One of the cloud functions (traffic data) executing |
+
 ![landing_zone](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/ada93002-317f-46e9-ac64-e22a946888cb)
 
 ![landing_zone_contents - 1](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/4c9627b8-54b0-4e49-9f63-a2ff51c0882e)
@@ -142,7 +170,7 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 
 ![landing_zone_contents - 3](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/7f8af8c6-d24f-470f-b961-b97b74b61656)
 |:--:|
-| Data Ingestion into the Landing Zone |
+| Showcasing how data is organized in the landing bucket |
 
 ## Load and Transform
 
