@@ -8,22 +8,20 @@ parser.add_argument("--process-name", dest="proc_name")
 
 client = bigquery.Client()
 
+
 def get_config():
     with open("utils/config.json", "r") as f:
         return json.load(f)
 
+
 def load_data_to_bigquery(proc_name, landing_bucket, config):
     uri = f"gs://{landing_bucket}/data/pre-processed/{proc_name}/*.csv"
     job_config = bigquery.LoadJobConfig(
-        autodetect=True,
-        skip_leading_rows=1,
-        source_format=bigquery.SourceFormat.CSV
+        autodetect=True, skip_leading_rows=1, source_format=bigquery.SourceFormat.CSV
     )
     table_id = config.get("raw_tables").get(proc_name)
     try:
-        load_job = client.load_table_from_uri(
-            uri, table_id, job_config=job_config
-        )
+        load_job = client.load_table_from_uri(uri, table_id, job_config=job_config)
         load_job.result()
         destination_table = client.get_table(table_id)
         rows = int(destination_table.num_rows)
@@ -32,8 +30,8 @@ def load_data_to_bigquery(proc_name, landing_bucket, config):
         print(f"Error loading data to BigQuery: {e}")
     finally:
         return rows
-    
-    
+
+
 def store_func_state(bq_client, table_id, state_json):
     rows_to_insert = [state_json]
     errors = bq_client.insert_rows_json(table_id, rows_to_insert)
@@ -41,7 +39,6 @@ def store_func_state(bq_client, table_id, state_json):
         print("New rows have been added.")
     else:
         print("Encountered errors while inserting rows: {}".format(errors))
-    
 
 
 if __name__ == "__main__":
@@ -65,7 +62,7 @@ if __name__ == "__main__":
         "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         "time_taken": round(time_taken.seconds, 3),
-        "rows_processed":  rows,
+        "rows_processed": rows,
         "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     CATALOG_TABLE_ID = config["catalog_table"]
