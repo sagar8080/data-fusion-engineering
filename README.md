@@ -2,68 +2,19 @@
 # Analyzing the Impact of Weather, Traffic, and Taxi Usage on Road Safety in NYC
 
 ## Table of Contents
-- [Directory Structure](#directory-structure)
+
 - [Background](#background)
-- [Application Architecture](#application-architecture)
-- [Data Engineering Roadmap](#data-engineering-roadmap)
+- [Data Architecture](#application-architecture)
+- [Initial Setup](#initial-setup)
 - [Ingest](#ingest)
-- [Transformation](#transformation)
+- [Load and Transform](#load-and-transform)
 - [Storage](#storage)
 - [Analysis](#analysis)
 - [Management](#management)
 - [Screenshots](#screenshots)
+- [Dashboard](#dashboard)
+- [Key Takeaways](#key-takeaways)
 
-
-## Directory Structure
-
-The repository is organized into several directories, each with a specific purpose in the overall project architecture. 
-Here is an overview of the top-level structure and its contents:
-
-```
-.
-├── README.md
-├── dag
-│   └── dag.py
-├── data_pipelines
-│   ├── landing_to_stage.py
-│   ├── prod_to_analysis.py
-│   └── stage_to_raw_and_prod.py
-├── dir_structure.txt
-├── first_steps.md
-├── ingest
-│   ├── crashes_data
-│   │   ├── main.py
-│   │   └── requirements.txt
-│   ├── persons_data
-│   │   ├── main.py
-│   │   └── requirements.txt
-│   ├── traffic_data
-│   │   ├── main.py
-│   │   └── requirements.txt
-│   ├── vehicles_data
-│   │   ├── main.py
-│   │   └── requirements.txt
-│   └── weather_data
-│       ├── main.py
-│       └── requirements.txt
-├── main.tf
-├── test.py
-├── utils
-│   ├── bigquery.py
-│   ├── dataproc.py
-│   └── zip_files.py
-├── variables.tf
-```
-
-- `README.md`: The comprehensive guide documenting the purpose, structure, and usage of this repository.
-- `dag/`: Contains the `dag.py` script, which orchestrates the data processing workflows as Directed Acyclic Graphs (DAGs).
-- `data_pipelines/`: Scripts for data processing pipelines are located here, including the landing to staging (`landing_to_stage.py`), staging to raw and production (`stage_to_raw_and_prod.py`), and production to analysis (`prod_to_analysis.py`).
-- `dir_structure.txt`: A text file containing the directory structure of the project, for quick reference or documentation purposes.
-- `first_steps.md`: A markdown file that contains instructions or a guide for initial steps in setting up or understanding the project.
-- `ingest/`: This directory contains subdirectories for each data source, such as crashes, persons, traffic, vehicles, and weather data. Each subdirectory includes a `main.py` script for ingesting data from its respective source and a `requirements.txt` file specifying the Python package dependencies. This is essential for cloud functions to be deployed and run appropriately individually.
-- `main.tf`: The main Terraform configuration file that defines the infrastructure as code for provisioning resources on Google Cloud.
-- `utils/`: Utility scripts such as `bigquery.py` for interacting with BigQuery, `dataproc.py` for working with DataProc services, and `zip_files.py`, which can be used for compressing data files.
-- `variables.tf`: Terraform configuration file that defines variables used across the Terraform files in the project.
 
 ## Background
 
@@ -88,126 +39,288 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 - Weather Data -  https://openweathermap.org/api
 - TLC trip data - https://registry.opendata.aws/nyc-tlc-trip-records-pds/
 
-## Application Architecture
-![Alt text](./GCP%20-%20data%20fusion%20engineering.jpg)
+## Data Architecture
+![Alt text](./architecture_diagram.svg)
 
-## Data Engineering Roadmap
+1. **Data Ingestion via Cloud Functions**:
+   - **Triggering Cloud Functions**: Leveraging *event-driven architecture* and *serverless computing*, Cloud Functions are scheduled by Cloud Scheduler to fetch data from various external APIs (e.g., Weather Data, Crashes Data, Persons Data, Vehicles Data, Taxi Data, Traffic Data).
+   - **Storing in Landing Zone**: Ingested data is stored as CSV or JSON files in a pre-processed path within the landing zone in Cloud Storage, implementing the *data lake* paradigm.
 
-### Initial Cloud Setup
+2. **Data Storage**:
+   - **Landing to RAW**: Using *distributed computing* and *in-memory processing*, PySpark scripts which are stored in the GCS buckets are referenced by shell scripts in the Code Bucket, run transformation and loading jobs. This process is automated using `CRONTAB` file available on all Linux Distros.
+   - **Raw Dataset Storage**: Processed data is stored in a raw dataset in Cloud Storage, maintaining the *schema-on-read* approach.
 
-The process begins by running the file `setup.sh`. In order to reproduce this architecture on GCP make the script executable by performing `chmod +x setup.sh` 
-and run the file as `./setup.sh <GCP-PROJECT-ID> <GCP-SERVICE-ACCOUNT>` in the current working directory. Here is a breakdown of he detailed shell script operations that provides a complete view of the automated deployment and management process that supports the data architecture.
+3. **Data Transformation and Loading**:
+   - **RAW to Prod Dataset**: Transformed data is loaded from the raw dataset to the production dataset, implementing *ETL (Extract, Transform, Load)* processes. This process is automated using `CRONTAB` file available on all Linux Distros.
 
-- `Initial Setup and Installation:`
-    - The script takes in 2 arguments: `GCP project id` which needs to be created prior installation and a `service account name` which may or may not be created prior to execution.
-    - The script begins by installing jq on Ubuntu or WSL (Windows Subsystem for Linux) to handle JSON files, crucial for reading configuration files.
-    - Validates if the gcloud CLI is installed, and installs it if absent, ensuring tools necessary for interacting with Google Cloud services are available.
+4. **Data Monitoring and Management**:
+   - **Data Catalog**: Utilizing *metadata management* and *data governance*, the Data Catalog monitors processes, tracks last fetched timestamps for incremental loading, and ensures data quality and consistency.
 
-- `Google Cloud Authentication and Configuration:`
-    - Establishes service accounts and sets up application default credentials to ensure seamless authentication and authorization with Google Cloud services.
-    - Specifically creates a new service account, automating permissions and credential setup necessary for the cloud resources. 
-    - If this script is run multiple times using the same service account, it continues to use the previously generated credentials without creating a new one.
+5. **Data Visualization**:
+   - **Superset Dashboards**: *Data visualization* tools like Superset were used to create dashboards and charts, which are auto-refreshed at periodic intervals to provide analysis and insights into the data.
 
-- `Environment Setup for Development:`
-    - Ensures Python and virtualenv are installed, setting up a controlled and consistent development environment.
-    - Automatically installs necessary Python libraries from requirements.txt, ensuring all dependencies are satisfied for the scripts to run.
+## Initial Setup
 
-- `Infrastructure Setup and Management:`
-    - Automates the creation of BigQuery datasets, tables, and GCS buckets. It also handles the generation of a global configuration and zips and uploads Cloud Functions (CFN) code to a GCS code bucket dynamically.
-    - If a config file is already generated in previous installation, it uses that config file and skips the creation of resources.
-    - All the GCP buckets created will have a `6 digit  unique id` in order to maintain bucket naming standards which states that names should be globally unique
-    - Config file generated will vary from user to user
-    - Ensures Terraform is installed, facilitating infrastructure as code deployments that are reproducible and consistent.
-    - Exports necessary environment variables for Terraform, enabling it to manage cloud resources based on the defined configurations.
+**Setup and Execution:**
+- Make the script executable: 
+```
+chmod +x setup.sh
+```
+- Run the script: 
+```
+./setup.sh <GCP-PROJECT-ID> <GCP-SERVICE-ACCOUNT-NAME>
+```
 
-- `Resource Management:`
-    - Optionally clears existing resources to ensure a clean state for deployments, which can be crucial for managing cloud costs and avoiding configuration drift.
-    - Executes Terraform scripts to create cloud functions and cloud schedulers for each of the APIs, automating the deployment of the entire cloud infrastructure.
+**Script Operations:**
 
-- `Cleanup and Configuration Management:`
-    - Removes configuration files from the ingest location to prevent repetition and maintain security by ensuring sensitive information is not left in accessible locations.
-    - Persists Terraform variables in the bash environment to ensure they are available across sessions, enhancing the usability of the script in persistent environments.
+**Initial Setup and Installation:**
+- Takes two arguments: GCP project ID and service account name.
+- Installs `jq` for handling JSON files on Ubuntu or WSL.
+- Validates and installs `gcloud` CLI if not already installed.
 
-- `Cleanup Bytecode Files:` 
-    - Removes Python bytecode files (pycache and .pyc files), keeping the workspace clean and ensuring that stale bytecode does not interfere with development.
+**Google Cloud Authentication and Configuration:**
+- Establishes service accounts and sets up default credentials.
+- Creates a new service account with necessary permissions.
+- Reuses previously generated credentials if the script is rerun.
 
-- `Continuous Integration and Continuous Deployment (CI/CD):`
-    - The entire process can be part of a CI/CD pipeline, ensuring that updates to the codebase in the Git repository automatically trigger re-deployments, maintaining the sync between the code and the deployed infrastructure.
+**Environment Setup for Development:**
+- Ensures Python and `virtualenv` are installed.
+- Installs required Python libraries from `requirements.txt`.
 
-### PROCESS FLOW
-The provided data architecture diagram and process flow outline a comprehensive data engineering solution designed to handle data ingestion, processing, and analysis within a Google Cloud Platform (GCP) environment. This solution leverages a variety of GCP services such as:
+**Infrastructure Setup and Management:**
+- Automates creation of BigQuery datasets, tables, and GCS buckets.
+- Generates an unique global configuration and uploads Cloud Functions code to GCS.
+- Ensures Terraform is installed for infrastructure as code deployments.
+- Exports necessary environment variables for Terraform.
 
-1. `CLOUD FUNCTIONS` - for batch extraction of data from APIs
-2. `CLOUD SCHEDULER` - for executing cloud functions at pre-defined intervals using a cron expression
-3. `CLOUD STORAGE BUCKETS` - for storing the data extracted from APIs serving as a landing zone layer
-3. `BIGQUERY` - for storing the metadata, raw, staging, and production data
-4. `DATAPROC` - for processing data in cloud storage buckets and loading into bigquery tables
-5. `CLOUD COMPOSER (AIRFLOW)` - for orchestrating spark jobs that perform transformation and aggregation of raw data
-6. `LOOKER` - BI tool to build dashboards
+**Resource Management:**
+- Optionally clears existing resources for a clean state.
+- Executes Terraform scripts to create cloud functions and schedulers for APIs.
 
-Here's a detailed exploration and explanation of the data engineering roadmap based on the outlined processes:
-
-- Data Ingestion:
-    - `External APIs to Cloud Storage:` The process begins with the ingestion of data from six different external APIs, each potentially representing different data domains such as traffic, crashes, vehicles, persons, weather, and TLC trip data. Cloud Functions are used to fetch data from these APIs periodically, triggered by Cloud Scheduler instances. This setup ensures that data fetching is automated and occurs at regular intervals.
-    - `Automation and Deployment:` The deployment of Cloud Functions is automated using a shell script that pulls the latest code from a Git repository and uses Terraform for infrastructure provisioning and management. This approach ensures that any updates to the function logic or configurations can be centrally managed and version-controlled.
-
-- Data Processing Orchestration:
-    - `Dataproc and Spark Jobs:` A Directed Acyclic Graph (DAG)-based workflow orchestrates the creation of dynamic Dataproc clusters and the execution of three Apache Spark jobs. This setup leverages the scalability and flexibility of Dataproc for processing large datasets efficiently.
-
-- Staging and Raw Data Management:
-    - `Spark Job 1:` The first Spark job processes the data fetched from the landing zone in Cloud Storage and writes it into a staging table in BigQuery. This step might include preliminary cleaning and structuring of the data.
-    - `Spark Job 2:` The second Spark job transfers data from the staging table to a raw table in BigQuery. This raw table acts as a static source of truth and includes transformations necessary to prepare the data for downstream analysis and reporting.
-
-- Production Data Handling:
-    - `Spark Job 3:` This job is responsible for transforming data from the raw tables into a production-ready format. It loads the data into an unified data model in BigQuery, performing aggregations, metric calculations, and any other necessary data transformations to support analytical needs.
-
-- Data Analysis and Reporting:
-    - `Business Intelligence Tools:` Data stored in BigQuery is then used as a source for BI tools such as Looker or Apache Superset. These tools are used to create interactive dashboards and reports that provide insights into the data, supporting business decisions and operational efficiency.
-
-- Metadata Management and Incremental Loading:
-    - `Data Catalogs:` Metadata for each execution, including job performance metrics and the last offset fetched from each API, is stored in a data catalog. This catalog not only helps in maintaining an audit trail of data operations but also supports incremental data loading by storing the last state of data fetched. This mechanism reduces redundancy, improves efficiency, and ensures that only new or changed data is fetched in subsequent runs.
+**Cleanup and Configuration Management:**
+- Removes configuration files from ingest location for security.
+- Persists Terraform variables in the bash environment.
 
 
 ## Ingest
 
-The ingest stage involves retrieving data from the following external sources:
-- DOT Traffic Speeds API
-- NYC Open Data APIs for Motor Vehicle Collisions (Persons, Vehicles, Crashes)
-- OpenWeatherMap API for weather data
-- TLC trip data
+These scripts are designed to run as a Google Cloud Function that automates the process of ingesting data from the APIs, processing it, and storing the results in Google Cloud Storage and BigQuery.
 
-The ingest process is automated via Python scripts using standard libraries like `requests` for API calls. The scripts are deployed on Google Cloud using Cloud Functions and trigger on a schedule that ensures data is refreshed every hour.
+1. **Initialization**: The script begins by importing necessary libraries and loading configuration details from a JSON file. It initializes Google Cloud Storage and BigQuery clients and sets up constants for the process.
 
-## Transformation
+2. **Fetch Last Offset**: The `fetch_last_offset` function queries BigQuery to determine the most recent timestamp of successfully processed data, which helps in fetching new data incrementally from the API.
+
+3. **Date Handling**: The `get_dates` function converts the retrieved timestamp into start and end dates for data extraction, ensuring that data is fetched in defined time increments (60 days by default).
+
+4. **Data Fetching and Uploading**: The `fetch_data` function constructs an API call to retrieve crash data within the specified date range, while `upload_to_gcs` uploads the fetched data as a CSV file to Google Cloud Storage, handling potential errors gracefully.
+
+5. **State Management and Execution**: The main `execute` function coordinates the entire process, from fetching data to uploading it, and storing the function's state in BigQuery. It captures the execution state, timestamps, and logs any errors, ensuring robust and trackable data processing.
+
+![cloud_bucket_creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/2d50b988-904a-4e1e-9912-083e37903c39)
+|:--:|
+| Created GCS Cloud Buckets |
+
+![landing_zone](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/ada93002-317f-46e9-ac64-e22a946888cb)
+
+![landing_zone_contents - 1](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/4c9627b8-54b0-4e49-9f63-a2ff51c0882e)
+
+![landing_zone_contents - 2](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/2dd53244-6959-42a9-840f-ee86e626bf9a)
+
+![landing_zone_contents - 3](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/7f8af8c6-d24f-470f-b961-b97b74b61656)
+|:--:|
+| Data Ingestion into the Landing Zone |
+
+## Load and Transform
 
 Data from all sources is transformed into a cohesive data model using DataProc and PySpark. The transformation occurs bi-hourly, dovetailing with the ingest timing to ensure a balance between data freshness and system efficiency. During this stage, data is prepared for analysis, conforming to a relational schema that supports complex queries.
+
+1. **Data Proc Initialization**: Initialize a DataProc cluster within the Google Cloud (GCP) environment to enable effective communication between data nodes and facilitate batch processing.
+
+2. **Virtual Machine Setup**: Set up a Google Compute Engine (GCE) VM equipped with necessary compute resources to host and execute data loading and transformation scripts, utilizing CRON expressions for robust scheduling across any infrastructure.
+
+3. **Batch Loading**: Utilize the `run_load_to_raw.sh`  shell script for moving data from the landing zone into the raw data zone. This script manages the initialization of the cluster, batch loads data into the code bucket and BigQuery, and terminates the cluster post-successful execution. This script is also tested locally to ensure consistent execution across various environments. This Batch Loading Script is run once daily on a defined schedule using using `CRONTAB` file available on all Linux Distros.
+
+4. **PySpark Job Creation**: Develop and deploy PySpark scripts on the DataProc cluster to handle more intricate data transformations and processing tasks.
+
+5. **Transformation to Production Data**: The `run_transformation.sh` shell script is used to refine raw data into production-ready data sets. This script coordinates the execution of PySpark scripts and, similar to other scripts, is also tested locally to validate its performance in different environments. The Transformation Script is run once daily on a defined schedule `CRONTAB` file available on all Linux Distros.
+
+6. **Monitoring & Optimization**: Continuously monitor the performance of both the DataProc cluster and the Compute Engine VM, as well as script executions, using GCP's monitoring tools. This monitoring assists in adjusting compute resources and optimizing script execution to enhance processing speed and resource efficiency.
+
+![Setting up DataProc Cluster](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/23fbb913-3a74-492b-9e3b-8edc95866cef)
+|:--:|
+| DataProc Cluster Set Up --- Configuration --- Leader Node: 1 N2-Standard-4 4CPU 16GB --- 2 Worker Nodes: 2 E2-Standard-4 4VCPU 16GB|
+
+![Setting up Virtual Environment](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/7de095bd-479c-42e4-934c-80f8a0db6f14)
+|:--:|
+| Virtual Environment (Compute Engine) Set Up |
+
+![DataProc Jobs Created](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/d801a323-a65b-4aa9-8d63-c4cb7d3ca664)
+|:--:|
+| Creating DataProc Jobs |
+
+![Running Load to Raw Shell Script on VM](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/12dda142-4b48-4a6c-82a0-cf9878b60566)
+|:--:|
+| We intended to run "Landing Zone to Raw Zone Script" also on Virtual Machine (Compute Engine) using a CRON expression |
+
+![Running Transformation Shell Script on VM](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/9d1f70e1-b21a-46ba-ad17-1ca1af67a97b)
+|:--:|
+| We inteded to run the "Transformation Script" on Virtual Machine (Compute Engine) using CRON expression |
+
+![Transformation Job Successful](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/f75e6c6d-d377-41aa-88ea-36b6df0f0e66)
+|:--:|
+| Transformation Job Successful on Virtual Machine (Compute Engine) |
+
+![cmd - run load to raw](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/d3b90923-52c2-47ff-934f-58c0f59e01b0)
+|:--:|
+| Running "Landing Zone to Raw Zone Script" on the Local Environment (Command Line) |
+
+![cmd - run transformations](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/af36f240-4217-4509-9125-40d35ce94d7b)
+| Running "Transformation Script" on the Local Environment (Command Line) |
+
+![PYSPARK jobs](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/4adc64ee-f8b0-4296-bf1e-b9f9a9176ac2)
+|:--:|
+| PySpark Job Creation |
+
+![pyspark execution](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/4f70cca7-5a5a-463b-a7ac-5dc23b484551)
+|:--:|
+| PySpark Job Execution Details |
+
 
 ## Storage
 
 We use BigQuery as our primary storage technology, chosen for its seamless integration with DataProc and excellent support for SQL queries on large datasets. The database is structured to logically represent our data model, with separate tables for each data source that relate to one another through shared keys.
 
+1. **Data Structure Design**: The data within BigQuery is organized logically to represent the data model effectively. Each data source, such as crashes, traffic, persons, taxis, and vehicles, has separate tables which are further categorized as follows:
+
+   **Landing Zone (Pre-Processed)**: 
+   Initial raw data from various sources is stored directly as it is ingested. This includes separate folders for each type of data (e.g., crashes, persons, traffic) with a daily partitioning scheme, as seen with folders dated by each day (e.g., 2024-05-08, 2024-05-07, etc.). Data is segmented into daily batches within the `df_raw` bucket, allowing for effective date-based management and querying.
+
+   **Processed Data Zone**:
+   After initial ingestion and any required preprocessing, data is moved to the `df_prod` bucket, where it is ready for use in production environments. This processed data is still categorized by data type but optimized for performance and query efficiency. This data is further used for detailed analytics.
+
+2. **Data Catalog**: Maintaining a process catalog (`df_process_catalog`) helps in managing metadata and ensuring that data governance and lineage are traceable.
+
+3. **Automation & Scripting**: Automated scripts facilitate the data migration from the landing zone to the raw and processed zones as needed. Additionally, Python scripts automate direct data loading into BigQuery for weather, vehicles, and persons data, while PySpark scripts handle datatype casting. For traffic data, initially received in JSON format and requiring extra processing, we evaluated both Apache Beam and Apache Spark, ultimately choosing Spark as the more suitable solution for our needs.
+
+![pre-processed to processed](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/ee6be573-b3d8-4170-a580-3815afd4a3c3)
+|:--:|
+| Data Storage from Landing Zone (Pre-Processed) to Raw Zone (Processed) |
+
+![bigquery_tables](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/b40667c9-0910-4c01-86de-e832df9ce6a1)
+|:--:|
+| BigQuery Tables |
+
 ## Analysis
 
-Our analytical framework consists of predefined SQL queries to explore various hypotheses about traffic congestion, driver behavior, and the impact of weather on taxi demand. Each query corresponds to a potential insight or pattern that could be derived from the combined data.
+### Combined Data Model
 
-## Data Analysis:
-- **Traffic Congestion Analysis**: 
-  - Utilize taxi trip data to identify areas with the highest congestion during different weather conditions and times of day. 
-  - Analyze how traffic speeds correlate with the volume of taxi trips and the severity of collisions.
-- **Driver Behavior and Road Safety**: 
-  - Uncover how weather conditions influence taxi driver behavior and its impact on road safety and correlate them with collision data.
-- **Impact of Inclement Weather on Taxi Demand**: 
-  - Examine how changes in weather conditions affect taxi demand across different parts of NYC. 
-  - Analyze whether there's a correlation between precipitation, temperature, and the frequency of taxi trips.
-- **Route Optimization and Traffic Predictions**: 
-  - Develop predictive models to forecast future traffic congestion based on weather forecasts and historical taxi patterns.
+- The `df_unified_crashes_model` table aggregates crash data, persons data, and vehicles data into a unified schema.
+- This includes specific transformations for data normalization and consolidation.
+
+### Data Standardization
+- In constructing the df_unified_crashes_model, we have created a robust data model that integrates and standardizes various datasets to provide a comprehensive view of vehicle crashes across New York City. 
+
+- This model standardizes borough names to ensure consistency across datasets, facilitating accurate city-wide analyses.  
+
+- Furthermore, the creation of additional views linking this unified crashes model to weather, traffic, and taxi data extends its utility, enabling complex queries that can assess the impact of environmental and traffic conditions on crash events. 
+
+----
+
+### In-Depth Analytics Performed
+
+#### Weather Statistics of NYC
+- **Question:** What are the average weather conditions in each borough of NYC between 2009 and 2024?
+- **Answer:** The top section of the dashboard provides weather statistics across different boroughs, including temperature range, snowfall, rainfall, and humidity for the specified period.
+
+#### Fatality in High Impact Crashes
+- **Question:** How has the fatality rate in high impact crashes varied across different boroughs from 2016 to 2024?
+- **Answer:** The line graph under the "Fatality in High Impact Crashes" section shows a trend of fatalities in high impact crashes across various boroughs, indicating a general decrease over the years.
+
+#### Vehicles Involved in a Crash Year Over Year (YOY)
+- **Question:** What is the year-over-year change in the number of vehicles involved in crashes?
+- **Answer:** The "Number of Persons Killed YoY" graph also shows the number of vehicles involved in crashes, with a trend line illustrating yearly variations.
+
+#### Fatal Crashes in Weather Conditions
+- **Question:** How do weather conditions like rain, snow, and fog correlate with the incidence of fatal crashes?
+- **Answer:** The colorful donut chart titled "Fatal Crashes in Weather Conditions" visually represents the correlation between different weather conditions and fatal crashes.
+
+#### Body Injury and Status Post Crash
+- **Question:** What patterns exist between the type of bodily injuries, emotional status, and age groups of crash victims?
+- **Answer:** The network graph titled "Body Injury and Status Post Crash" visualizes the relationships between bodily injuries, emotional statuses, and age categories of individuals involved in crashes.
+
+#### High Yielding Factors of Crashes
+- **Question:** What are the top five contributing factors to crashes in the past five years?
+- **Answer:** The diagram lists "High Yielding Factors of Crashes" like aggressive driving, failure to yield right-of-way, and driver inattention/distraction, showing their relative frequencies.
+
+#### Number of Persons Killed YoY
+- **Question:** What is the trend in the number of persons killed in vehicle crashes from year to year in each borough?
+- **Answer:** The green line graph displays the year-over-year count of persons killed in crashes across different boroughs, showing a slight increase in recent months.
+
+#### Occurrence of High Impact Crashes
+- **Question:** How does the monthly occurrence of high impact crashes fluctuate from 2016 to 2024?
+- **Answer:** A significant numeric display indicates "46 high impact crashes in May 2024," noting a dramatic 94.6% decrease over the past 12 months.
+
+#### Number of Persons Injured
+- **Question:** What is the monthly trend in the number of persons injured in crashes from 2012 to 2024?
+- **Answer:** A similar green line graph to the fatalities shows the monthly count of persons injured in crashes from 2012 to 2024, noting an 8.1% increase in the last 12 months.
+
+#### Contributing Factor for Crashes while Turning
+- **Question:** What are the most common contributing factors for crashes that occur during turning maneuvers?
+- **Answer:** The large number "47,557" under "High Impact Crashes While Turning" identifies the number of crashes that occurred during turning maneuvers.
+
+#### Categorizing Persons Involved in Crashes
+- **Question:** How are the demographics (such as age and person type) distributed among those involved in crashes?
+- **Answer:** A bar graph categorizes individuals involved in crashes by their person type and age category, highlighting predominant age groups and person types.
+
+#### Analyzing Traffic Speeds in NYC on Weekdays and Weekends
+- **Question:** What are the differences in average traffic speeds between weekdays and weekends in NYC?
+- **Answer:** The area graph titled "Traffic Speed in NYC on Weekdays and Weekends" analyzes differences in traffic speeds, clearly indicating variations between these times.
+
+#### Trend of High Impact Crashes YoY
+- **Question:** Is there a noticeable trend in high impact crashes year over year across different boroughs?
+- **Answer:** A graph shows the yearly trend of high impact crashes across different boroughs, with some peaks and valleys over the years.
+
+#### Understanding Pre Crash Condition and Vehicle Damage Afterwards
+- **Question:** Is there a correlation between pre-crash conditions and the severity of vehicle damage following a crash?
+- **Answer:** The circular network graph at the bottom of the dashboard could suggest the relationship between pre-crash conditions and the extent of vehicle damage following a crash.
+
+#### State-wise Distribution of Crashes
+- **Question:** How are high impact crashes distributed across different states based on vehicle registration from 2023 to 2024?
+- **Answer:** A pie chart shows the state-wise distribution of high impact crashes, focusing on the state of vehicle registration from 2023 to 2024.
 
 ## Management
 
-Our GitHub repository follows best practices for code management. Commits are small, logical, and contain clear messages. All team members contribute meaningful commits. Code is organized into folders that correspond to each project dimension (Ingest, Transformation, Storage, Analysis).
-
-## Screenshots
-* To be updated
+- Our GitHub repository follows best practices for code management. 
+- Commits are small, logical, and contain clear messages. 
+- All team members contribute meaningful commits. 
+- Code is organized into folders that correspond to each project dimension (Ingest, Transformation, Storage, Analysis).
 
 ## Dashboard
-![Alt text](./superset-dashboard.jpg)
+![Alt text](./data-fusion-dashboard.jpg)
+
+## Key Takeaways
+
+- **BigQuery**: Enabled powerful and scalable analytics on large datasets. Also, seamlessly allowed us to perform direct load operations for some of the datasets, saving time.
+- **Cloud Storage**: Provided secure and durable storage for our data without incurring a lot of cost.
+- **DataProc**: Facilitated efficient data processing with SPARK and also provided a JUPYTERLAB interface to perform some quick testing off the shelf.
+- **Cloud Functions**: Managed serverless operations helped us to extract data from the APIs as quickly as possible.
+- **Cloud Schedulers**: Automated our cloud functions to run once every hour on weekdays between 9 to 5.
+
+- **Opting for Simplicity in Scheduling**: Initially, we considered using Cloud Composer to orchestrate raw and prod loading. However, we realized that for our project's scale and complexity, Shell Scripts and Crontabs provided a more straightforward and equally effective solution. This approach allowed for precise control and scheduling flexibility without the overhead of managing an additional orchestration tool.
+
+- **Intelligent Data Batching**: To manage system resources efficiently and avoid overloading, we implemented intelligent data batching in chunks of 2-3 GB. This strategy ensured smooth and uninterrupted data processing.
+
+- **Choosing PySpark Over BEAM**: We opted for PySpark over BEAM due to its superior in-memory processing speed, which significantly boosted our data handling capabilities, especially when processing large JSON files. BEAM could be a better option if we intended to use a streaming data source, but for batch workloads, SPARK reigns supreme.
+
+- **Data Cataloging Improvement**: We noticed frequent timeouts with traffic data despite a 600-second timeout limit. This was due to inefficient paging and fetching offsets from the API. By modifying our ingestion code to fetch data based on timestamps (30-40 days at a time), we improved our system's performance and successfully fetched high volumes of data. Here are the stats for our processes:
+
+  1. `ingest-traffic-data`: 95.71 seconds
+  2. `ingest-vehicles-data`: 51.30 seconds
+  3. `ingest-persons-data`: 28.48 seconds
+  4. `ingest-crashes-data`: 8.55 seconds
+  5. `ingest-taxi-data`: 6.22 seconds
+  6. `ingest-weather-data`: 3.31 seconds
+
+- **Holistic Data Integration**: By integrating diverse datasets — weather, traffic, taxi, and crash data — we were able to gain comprehensive insights into the factors influencing road safety in NYC. This integration helped us uncover important trends and correlations.
+
+- **Insightful Visualizations with Dynamic Dashboards**: We leveraged Superset to create dynamic dashboards primarily due to its ease of features and quick integration with Bigquery. This allowed us to build a pretty dashboard for our MBA friends to get wowed about.

@@ -93,3 +93,50 @@ resource "google_cloud_scheduler_job" "invoke_cloud_function" {
     }
   }
 }
+
+
+resource "google_dataproc_cluster" "data_fusion" {
+  name     = "data-fusion"
+  region   = "us-east4"
+  graceful_decommission_timeout = "120s"
+
+  cluster_config {
+    staging_bucket = "dataproc-staging-bucket"
+
+    master_config {
+      num_instances = 1
+      machine_type  = "n2-standard-4"
+      disk_config {
+        boot_disk_type    = "pd-balanced"
+        boot_disk_size_gb = 50
+      }
+    }
+
+    worker_config {
+      num_instances    = 2
+      machine_type     = "e2-standard-4"
+      disk_config {
+        boot_disk_type = "pd-balanced"
+        boot_disk_size_gb = 50
+      }
+    }
+
+    preemptible_worker_config {
+      num_instances = 0
+    }
+
+    # Override or set some custom properties
+    software_config {
+      image_version = "2.0.35-debian10"
+      override_properties = {
+        "dataproc:dataproc.allow.zero.workers" = "true"
+      }
+    }
+
+    gce_cluster_config {
+      # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+      service_account = var.service_account_email
+      service_account_scopes = ["cloud-platform"]
+    }
+  }
+}

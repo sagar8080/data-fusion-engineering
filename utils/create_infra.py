@@ -135,16 +135,18 @@ def create_datasets(config):
 
 
 def create_tables(config):
-    tables = {
-        TRAFFIC_TABLE: traffic_data_schema,
-        CRASHES_TABLE: mv_crashes_schema,
-        VEHICLES_TABLE: mv_vehicles_schema,
-        PERSONS_TABLE: mv_persons_schema,
-        TLC_TRIP_TABLE: tlc_trip_data_schema,
-    }
+    tables = [
+        TRAFFIC_TABLE,
+        CRASHES_TABLE,
+        VEHICLES_TABLE,
+        PERSONS_TABLE,
+        TLC_TRIP_TABLE,
+        WEATHER_TABLE
+    ]
     config["stage_tables"] = {}
     config["raw_tables"] = {}
     config["prod_tables"] = {}
+    
     catalog_table = create_table(CATALOG_DATASET, CATALOG_TABLE, catalog_schema)
     if catalog_table:
         config["catalog_table"] = (
@@ -153,42 +155,10 @@ def create_tables(config):
     else:
         logger.warning(f"Failed to create TABLE: {catalog_table}")
 
-    for table_name, schema in tables.items():
-        stage_table = create_table(
-            STG_DATASET, f"{ROOT_PREFIX}_{table_name}_{STAGE_SUFFIX}", schema
-        )
-        if stage_table:
-            config["stage_tables"][
-                table_name
-            ] = f"{stage_table.project}.{stage_table.dataset_id}.{stage_table.table_id}"
-        else:
-            logger.warning(
-                f"Failed to create TABLE: {ROOT_PREFIX}_{table_name}_{STAGE_SUFFIX}"
-            )
-
-        raw_table = create_table(
-            RAW_DATASET, f"{ROOT_PREFIX}_{table_name}_{RAW_SUFFIX}", schema
-        )
-        if raw_table:
-            config["raw_tables"][
-                table_name
-            ] = f"{raw_table.project}.{raw_table.dataset_id}.{raw_table.table_id}"
-        else:
-            logger.warning(
-                f"Failed to create TABLE: {ROOT_PREFIX}_{table_name}_{RAW_SUFFIX}"
-            )
-
-        prod_table = create_table(
-            PRD_DATASET, f"{ROOT_PREFIX}_{table_name}_{PROD_SUFFIX}", schema
-        )
-        if prod_table:
-            config["prod_tables"][
-                table_name
-            ] = f"{prod_table.project}.{prod_table.dataset_id}.{prod_table.table_id}"
-        else:
-            logger.warning(
-                f"Failed to create TABLE: {ROOT_PREFIX}_{table_name}_{PROD_SUFFIX}"
-            )
+    for table_name in tables.items():
+        config["stage_tables"][table_name] = f"{config['stage_dataset']}.{table_name}"
+        config["raw_tables"][table_name] = f"{config['raw_dataset']}.{table_name}"
+        config["prod_tables"][table_name] = f"{config['prod_dataset']}.{table_name}"
 
 
 def bucket_exists(bucket_name):
@@ -286,13 +256,13 @@ def write_config(config):
             logger.error(f"Failed to upload config file to Google Cloud Storage: {e}")
 
 
-def upload_dataproc_jobs(filepath, config):
+def upload_dataproc_jobs(filepath, config, process):
     code_bucket_name = config["code_bucket"]
     code_bucket = storage_client.bucket(code_bucket_name)
     for filename in os.listdir(filepath):
         if filename.endswith('.py'):
             local_file_path = os.path.join(filepath, filename)
-            destination_blob_name = f"scripts/{filename}"
+            destination_blob_name = f"scripts/{process}/{filename}"
             blob = code_bucket.blob(destination_blob_name)
             blob.upload_from_filename(local_file_path)
             logger.warning(f"Uploaded {filename} to GCS bucket {code_bucket_name} successfully.")
@@ -342,7 +312,8 @@ def main():
             write_config(config)
             add_config_to_ingest(f"{os.getcwd()}/ingest/", config)
             upload_cfn_code(f"{os.getcwd()}/ingest/", config)
-            upload_dataproc_jobs(f"{os.getcwd()}/data_pipelines/", config)
+            upload_dataproc_jobs(f"{os.getcwd()}/load/", config, 'load')
+            upload_dataproc_jobs(f"{os.getcwd()}/transform/", config, 'transform')
         
         else:
             logger.warning("Config not found, creating GCP resources")
@@ -353,7 +324,8 @@ def main():
             write_config(config)
             add_config_to_ingest(f"{os.getcwd()}/ingest/", config)
             upload_cfn_code(f"{os.getcwd()}/ingest/", config)
-            upload_dataproc_jobs(f"{os.getcwd()}/data_pipelines/", config)
+            upload_dataproc_jobs(f"{os.getcwd()}/load/", config, 'load')
+            upload_dataproc_jobs(f"{os.getcwd()}/transform/", config, 'transform')
     
     elif operation_type.lower() == "delete":
         conf = read_config(config_bucket)
