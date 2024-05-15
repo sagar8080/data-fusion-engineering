@@ -160,7 +160,7 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 
    - For e.g. while fetching traffic data, even a month worth of data in flat file format overwhelmed the initial 2GB cloud function memory, prompting us to reduce the number of days fetched at once from 30 to 15 and increasing the number of executions per hour. 
    
-   - One can further customize the data pulled by calculating the number of executions from the start_date to current_date, divide it by `DAY_DELTA` variable in the traffic_data [cloud function](./ingest/traffic_data/main.py)
+   - One can further customize the data pulled by calculating the number of executions from the start_date to current_date, divide it by `DAY_DELTA` variable in the traffic_data **[cloud function](./ingest/traffic_data/main.py)** | Rest of the cloud functions are accessible **[here](./ingest/)**.
 
 ![cloud_bucket_creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/2d50b988-904a-4e1e-9912-083e37903c39)
 |:--:|
@@ -184,7 +184,9 @@ These scripts are designed to run as a Google Cloud Function that automates the 
 
 Data from all sources is transformed into a cohesive data model using DataProc and PySpark. The transformation occurs bi-hourly, dovetailing with the ingest timing to ensure a balance between data freshness and system efficiency. During this stage, data is prepared for analysis, conforming to a relational schema that supports complex queries.
 
-### Load Script: [crashes_data](./load/load_crashes_data_pyspark.py)
+### Load Functionality: 
+
+Example: **[crashes_data](./load/load_crashes_data_pyspark.py)** | Reamining scripts can be found **[here](./load/)**
 
 **1. Configurable Data Ingestion:**
    - The script utilizes `argparse` to accept command-line parameters, allowing the configuration of batch sizes and file prefix paths for selective data processing. 
@@ -204,7 +206,9 @@ Data from all sources is transformed into a cohesive data model using DataProc a
 **5. Efficient Data Loading to BigQuery:**
    - Transformed data is loaded into BigQuery using Spark’s BigQuery connector, which allows direct data writing from Spark DataFrames to BigQuery tables, optimizing the load process and maintaining data consistency.
 
-### Transformation Script: [crashes_data](./transform/transform_crashes_data.py)
+### Transformation Functionality: 
+
+Example: **[crashes_data](./transform/transform_crashes_data.py)** | Remaining Scripts can be found **[here](./transform/)**
 
 **1. Data Cleaning and Null Handling:**
    - The script includes a function to replace null values in string columns with a default text ('Unknown'), standardizing the data for analysis and preventing issues related to missing data during analytical processes.
@@ -225,7 +229,7 @@ Data from all sources is transformed into a cohesive data model using DataProc a
 ### Scheduling and Job execution
 This step is handled by 2 shell scripts.
 
-#### Loading [Shell Script](./run_load_to_raw.sh) Explanation
+**Loading [Shell Script](./run_load_to_raw.sh) Explanation** 
 
 **1. Scheduled Execution:**
    - The loading shell script is scheduled to run daily at 6 PM on weekdays, leveraging crontab for automation. 
@@ -246,7 +250,7 @@ This step is handled by 2 shell scripts.
 **5. Direct Data Loads:**
    - For certain datasets like weather, persons, and vehicles data, the script uses a Python script for direct loading into BigQuery, showcasing a flexible approach to data handling and ingestion depending on the data type and source.
 
-#### Transformation [Shell Script](./run_transformations.sh) Explanation
+**Transformation [Shell Script](./run_transformations.sh) Explanation**
 
 **1. Scheduled Transformation Jobs:**
    - The transformation script is set to run daily at 7 PM on weekdays, scheduled via crontab. 
@@ -266,7 +270,7 @@ This step is handled by 2 shell scripts.
 **5. Detailed Logging and Output:**
    - Throughout the script, detailed logs are provided for each step, from cluster management to job submission.
 
-`Note` - TThe screenshots below illustrate the cluster creation and job execution processes during some of our initial runs. These were a part of an experimental phase where we explored a menu-driven approach for our shell scripts. We aimed to demonstrate how this method aligns with our scheduled operations. Unfortunately, we had to repeat the ingestion process, which incurred additional costs. This necessity arose from our desire to refine the process to ensure optimal performance and cost-efficiency in a production environment.
+`Note` - The screenshots below illustrate the cluster creation and job execution processes during some of our initial runs. These were a part of an experimental phase where we explored a menu-driven approach for our shell scripts. We aimed to demonstrate how this method aligns with our scheduled operations. Unfortunately, we had to repeat the ingestion process, which incurred additional costs. This necessity arose from our desire to refine the process to ensure optimal performance and cost-efficiency in a production environment.
 
 
 ![Setting up DataProc Cluster](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/23fbb913-3a74-492b-9e3b-8edc95866cef)
