@@ -220,9 +220,9 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 |:--:|
 | Data Storage from Landing Zone (Pre-Processed) to Raw Zone (Processed) |
 
-![bigquery_tables](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/b40667c9-0910-4c01-86de-e832df9ce6a1)
+![bigquery_tables](./screenshots/prod_tables.png)
 |:--:|
-| BigQuery Tables |
+| BigQuery Tables structured in raw and production datasets |
 
 ![unified model preview](./screenshots/unified_crash_model.png)
 |:--:|
