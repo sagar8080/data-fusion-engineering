@@ -23,9 +23,8 @@ LANDING_BUCKET = config["landing_bucket"]
 CATALOG_TABLE_ID = config["catalog_table"]
 LIMIT = 1000000
 DAY_DELTA = 60
-DEFAULT_START_DATE = '2012-07-01T00:00:00'
-DEFAULT_END_DATE = '2012-07-31T23:59:59'
-
+DEFAULT_START_DATE = "2012-07-01T00:00:00"
+DEFAULT_END_DATE = "2012-07-31T23:59:59"
 
 
 def fetch_last_offset(table_id):
@@ -52,9 +51,10 @@ def fetch_last_offset(table_id):
         # Return the extracted offset if it exists, otherwise return the default start date
         return offset if offset else DEFAULT_START_DATE
     except Exception:
-    
+
         return DEFAULT_START_DATE
-      
+
+
 def get_dates(input_date):
     """
     Converts the input date to a start date and an end date.
@@ -71,14 +71,14 @@ def get_dates(input_date):
     elif isinstance(input_date, datetime.datetime):
         # If input_date is already a datetime object, use it as is
         start_date = input_date
-    
+
     # Calculate the end date by adding the specified number of days
     end_date = start_date + datetime.timedelta(days=DAY_DELTA)
-    
+
     # Convert start_date and end_date to ISO 8601 format
     start_date = start_date.strftime("%Y-%m-%dT%H:%M:%S")
     end_date = end_date.strftime("%Y-%m-%dT%H:%M:%S")
-    
+
     return start_date, end_date
 
 
@@ -96,19 +96,19 @@ def fetch_data(start_date, end_date):
     try:
         # Construct parameters for API request
         params = {
-            '$limit': f"{LIMIT}",
-            '$where': f"crash_date >= '{start_date}' AND crash_date <= '{end_date}'"
+            "$limit": f"{LIMIT}",
+            "$where": f"crash_date >= '{start_date}' AND crash_date <= '{end_date}'",
         }
         # Encode parameters for URL and construct API URL
         encoded_params = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
         api_url = f"{BASE_URL}?{encoded_params}"
-        
+
         # Read data from API into a DataFrame
         df = pd.read_csv(api_url, low_memory=False)
         return df
     except requests.RequestException as e:
         print(f"Request failed: {e}")
-    
+
     # Return None if there was an error fetching the data
     return None
 
@@ -127,11 +127,11 @@ def upload_to_gcs(data):
     # Get the current day and timestamp
     current_day = datetime.date.today()
     current_timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    
+
     # Define the file path and name
     file_path = f"{BASE_FILE_PATH}/{current_day}"
     file_name = f"{BASE_PROC_NAME}_{current_timestamp}.csv"
-    
+
     try:
         # Upload the data to GCS
         data.to_csv(f"gs://{LANDING_BUCKET}/{file_path}/{file_name}", index=False)
@@ -154,7 +154,7 @@ def store_func_state(table_id, state_json):
     # Prepare data for insertion into BigQuery table
     rows_to_insert = [state_json]
     errors = bq_client.insert_rows_json(table_id, rows_to_insert)
-    
+
     # Check if insertion was successful or not
     if not errors:
         print("New rows have been added.")

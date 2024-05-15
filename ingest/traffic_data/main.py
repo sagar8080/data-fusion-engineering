@@ -19,14 +19,15 @@ config = json.loads(f.read())
 # Constants
 LIMIT = 1000000
 DAY_DELTA = 15
-DEFAULT_START_DATE = '2017-01-01T00:00:00'
-DEFAULT_END_DATE = '2017-01-31T23:59:59'
+DEFAULT_START_DATE = "2017-01-01T00:00:00"
+DEFAULT_END_DATE = "2017-01-31T23:59:59"
 PROCESS_NAME = "df-ingest-traffic-data"
 LANDING_BUCKET = config["landing_bucket"]
 CATALOG_TABLE_ID = config["catalog_table"]
 BASE_URL = "https://data.cityofnewyork.us/resource/i4gi-tjb9.csv"
 BASE_PROC_NAME = "traffic_data"
-BASE_FILE_PATH = F"data/pre-processed/{BASE_PROC_NAME}"
+BASE_FILE_PATH = f"data/pre-processed/{BASE_PROC_NAME}"
+
 
 # Fetch the last timestamp loaded from BigQuery catalog table
 def fetch_last_offset(table_id):
@@ -43,6 +44,7 @@ def fetch_last_offset(table_id):
     except Exception:
         return DEFAULT_START_DATE
 
+
 # Get start and end dates with a delta of 15 days
 def get_dates(input_date):
     if isinstance(input_date, str):
@@ -54,12 +56,13 @@ def get_dates(input_date):
     end_date = end_date.strftime("%Y-%m-%dT%H:%M:%S")
     return start_date, end_date
 
+
 # Fetch data from the NYC traffic dataset API
 def fetch_data(start_date, end_date):
     try:
         params = {
-            '$limit': f"{LIMIT}",
-            '$where': f"data_as_of >= '{start_date}' AND data_as_of <= '{end_date}'"
+            "$limit": f"{LIMIT}",
+            "$where": f"data_as_of >= '{start_date}' AND data_as_of <= '{end_date}'",
         }
         encoded_params = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
         api_url = f"{BASE_URL}?{encoded_params}"
@@ -68,6 +71,7 @@ def fetch_data(start_date, end_date):
     except requests.RequestException as e:
         print(f"Request failed: {e}")
     return None
+
 
 # Upload the fetched data to Google Cloud Storage
 def upload_to_gcs(data):
@@ -82,6 +86,7 @@ def upload_to_gcs(data):
         print(e)
         return "Failure"
 
+
 # Store the state of the function execution in BigQuery
 def store_func_state(table_id, state_json):
     rows_to_insert = [state_json]
@@ -90,6 +95,7 @@ def store_func_state(table_id, state_json):
         print("New rows have been added.")
     else:
         print(f"Insert errors: {errors}")
+
 
 # Main function to execute the data fetching and storing process
 @functions_framework.http

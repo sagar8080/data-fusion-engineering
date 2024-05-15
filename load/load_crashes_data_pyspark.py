@@ -10,6 +10,7 @@ parser = ArgumentParser(description="Arg parser for this dataproc job")
 parser.add_argument("--batch-size", type=int, dest="batch_size", default=10)
 parser.add_argument("--prefix-path", type=str, dest="prefix_path")
 
+
 def create_spark_session(config):
     """
     Create a Spark session with the given configuration.
@@ -20,13 +21,18 @@ def create_spark_session(config):
     Returns:
         SparkSession: Initialized Spark session.
     """
-    spark = SparkSession.builder\
-        .appName("landing_to_raw")\
-        .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.21.1")\
-        .config("spark.sql.legacy.timeParserPolicy", "LEGACY")\
-        .config('temporaryGcsBucket', config.get('util_bucket'))\
+    spark = (
+        SparkSession.builder.appName("landing_to_raw")
+        .config(
+            "spark.jars.packages",
+            "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.21.1",
+        )
+        .config("spark.sql.legacy.timeParserPolicy", "LEGACY")
+        .config("temporaryGcsBucket", config.get("util_bucket"))
         .getOrCreate()
+    )
     return spark
+
 
 def get_config():
     """
@@ -35,8 +41,9 @@ def get_config():
     Returns:
         dict: Configuration parameters.
     """
-    with open('config.json', 'r') as config_file:
+    with open("config.json", "r") as config_file:
         return json.load(config_file)
+
 
 def list_and_batch_gcs_files(client, bucket_name, prefix, max_batch_size_gb=5):
     """
@@ -51,8 +58,8 @@ def list_and_batch_gcs_files(client, bucket_name, prefix, max_batch_size_gb=5):
     Yields:
         list: List of object names in each batch.
     """
-    max_batch_size_bytes = max_batch_size_gb * 1024 ** 3
-    
+    max_batch_size_bytes = max_batch_size_gb * 1024**3
+
     try:
         bucket = client.get_bucket(bucket_name)
     except Exception as e:
@@ -67,7 +74,7 @@ def list_and_batch_gcs_files(client, bucket_name, prefix, max_batch_size_gb=5):
         return
 
     for blob in blobs:
-        if blob.name.endswith('/'):
+        if blob.name.endswith("/"):
             continue
 
         blob_size = blob.size
@@ -82,6 +89,7 @@ def list_and_batch_gcs_files(client, bucket_name, prefix, max_batch_size_gb=5):
     if current_batch:
         yield current_batch
 
+
 def generate_file_path(bucket_name, proc_name, stage):
     """
     Generate a file path based on the bucket name, process name, and stage.
@@ -95,12 +103,13 @@ def generate_file_path(bucket_name, proc_name, stage):
         str: Generated file path.
     """
     base_path = f"gs://{bucket_name}/data/{stage}/{proc_name}/"
-    if stage == 'processed':
+    if stage == "processed":
         current_day = datetime.date.today().strftime("%Y-%m-%d")
         current_timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         file_name = f"{proc_name}_{current_timestamp}.parquet"
         return f"{base_path}{current_day}/{file_name}"
     return base_path
+
 
 def cast_dataframe_types(df):
     """
@@ -112,14 +121,22 @@ def cast_dataframe_types(df):
     Returns:
         DataFrame: DataFrame with casted columns.
     """
-    df = df.withColumn("crash_date", to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss"))
+    df = df.withColumn(
+        "crash_date", to_timestamp(col("crash_date"), "yyyy-MM-dd'T'HH:mm:ss")
+    )
     df = df.withColumn("crash_time", to_timestamp(col("crash_time"), "HH:mm"))
 
     int_fields = [
-        "zip_code", "number_of_persons_injured", "number_of_persons_killed",
-        "number_of_pedestrians_injured", "number_of_pedestrians_killed",
-        "number_of_cyclist_injured", "number_of_cyclist_killed",
-        "number_of_motorist_injured", "number_of_motorist_killed", "collision_id"
+        "zip_code",
+        "number_of_persons_injured",
+        "number_of_persons_killed",
+        "number_of_pedestrians_injured",
+        "number_of_pedestrians_killed",
+        "number_of_cyclist_injured",
+        "number_of_cyclist_killed",
+        "number_of_motorist_injured",
+        "number_of_motorist_killed",
+        "collision_id",
     ]
     for field in int_fields:
         df = df.withColumn(field, col(field).cast("integer"))
@@ -127,6 +144,7 @@ def cast_dataframe_types(df):
     df = df.withColumn("latitude", col("latitude").cast("double"))
     df = df.withColumn("longitude", col("longitude").cast("double"))
     return df
+
 
 def read_batch(spark, file_paths):
     """
@@ -142,6 +160,7 @@ def read_batch(spark, file_paths):
     df = spark.read.csv(file_paths, inferSchema=True)
     return df
 
+
 def move_gcs_files(client, batch, bucket_name):
     """
     Move files within a GCS bucket from one location to another.
@@ -153,12 +172,13 @@ def move_gcs_files(client, batch, bucket_name):
     """
     bucket = client.bucket(bucket_name)
     for input_filepath in batch:
-        parts = input_filepath[5:].split('/')
-        blob_name = '/'.join(parts[1:])
-        destination_blob_name = blob_name.replace('pre-processed', 'processed')
+        parts = input_filepath[5:].split("/")
+        blob_name = "/".join(parts[1:])
+        destination_blob_name = blob_name.replace("pre-processed", "processed")
         source_blob = bucket.blob(blob_name)
         bucket.copy_blob(source_blob, bucket, destination_blob_name)
         source_blob.delete()
+
 
 def write_data_to_bigquery(dataframe, table_name):
     """
@@ -168,10 +188,7 @@ def write_data_to_bigquery(dataframe, table_name):
         dataframe (DataFrame): Input DataFrame.
         table_name (str): Name of the BigQuery table.
     """
-    dataframe.write.format('bigquery') \
-        .option('table', table_name) \
-        .mode('append') \
-        .save()
+    dataframe.write.format("bigquery").option("table", table_name).mode("append").save()
 
 
 def store_func_state(bq_client, table_id, state_json):
@@ -203,7 +220,9 @@ def main(process_name, config, prefix, batch_size):
             batch_paths = [f"gs://{bucket_name}/{file_name}" for file_name in batch]
             print(f"Currently processing {process_name} and batch: {batch}")
             df = read_batch(spark, batch_paths)
-            processed_file_path = generate_file_path(bucket_name, process_name, "processed")
+            processed_file_path = generate_file_path(
+                bucket_name, process_name, "processed"
+            )
             df.coalesce(1).write.parquet(processed_file_path)
             table_name = config["raw_tables"][process_name]
             write_data_to_bigquery(df, table_name)
@@ -223,7 +242,7 @@ if __name__ == "__main__":
     try:
         args = parser.parse_args()
         proc_name = "crashes-data"
-        batch_size = int(args.batch_size)   
+        batch_size = int(args.batch_size)
         prefix_path = args.prefix_path
         if prefix_path.lower() == "all" or not prefix_path:
             prefix_path = None
@@ -240,10 +259,9 @@ if __name__ == "__main__":
         "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         "time_taken": round(time_taken.seconds, 3),
-        "rows_processed":  count,
+        "rows_processed": count,
         "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
     CATALOG_TABLE_ID = config["catalog_table"]
     store_func_state(bq_client, CATALOG_TABLE_ID, function_state)
     bq_client.close()
-

@@ -10,15 +10,15 @@ from google.cloud import storage, bigquery
 
 bq_client = bigquery.Client()
 storage_client = storage.Client()
-f= open("config.json", "r")
+f = open("config.json", "r")
 config = json.loads(f.read())
 LANDING_BUCKET = config["landing_bucket"]
 CATALOG_TABLE_ID = config["catalog_table"]
 PROCESS_NAME = "df-ingest-persons-data"
 LIMIT = 1000000
 DAY_DELTA = 60
-DEFAULT_START_DATE = '2012-07-01T00:00:00'
-DEFAULT_END_DATE = '2012-07-31T23:59:59'
+DEFAULT_START_DATE = "2012-07-01T00:00:00"
+DEFAULT_END_DATE = "2012-07-31T23:59:59"
 BASE_URL = "https://data.cityofnewyork.us/resource/f55k-p6yu.csv"
 BASE_FILE_PATH = "data/pre-processed/persons_data"
 BASE_PROC_NAME = "persons_data"
@@ -33,7 +33,7 @@ def fetch_last_offset(table_id):
 
     Returns:
         str: The last timestamp loaded, or the default start date if no timestamp is found.
-        
+
     """
     # Construct SQL query to select the last loaded timestamp from the specified table
     query = f"""
@@ -54,7 +54,6 @@ def fetch_last_offset(table_id):
     except Exception:
         return DEFAULT_START_DATE
 
-    
 
 def get_dates(input_date):
     """
@@ -99,19 +98,19 @@ def fetch_data(start_date, end_date):
     try:
         # Define parameters for the API request
         params = {
-            '$limit': f"{LIMIT}",
-            '$where': f"crash_date >= '{start_date}' AND crash_date <= '{end_date}'"
+            "$limit": f"{LIMIT}",
+            "$where": f"crash_date >= '{start_date}' AND crash_date <= '{end_date}'",
         }
-        
+
         # Encode the parameters for use in the URL
         encoded_params = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
-        
+
         # Construct the API URL with the encoded parameters
         api_url = f"{BASE_URL}?{encoded_params}"
-        
+
         # Read data from the API URL into a DataFrame
         df = pd.read_csv(api_url, low_memory=False)
-        
+
         # Return the DataFrame
         return df
     except requests.RequestException as e:
@@ -136,11 +135,11 @@ def upload_to_gcs(data):
     # Get the current date and timestamp
     current_day = datetime.date.today()
     current_timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    
+
     # Define the file path and name for the uploaded file
     file_path = f"{BASE_FILE_PATH}/{current_day}"
     file_name = f"{BASE_PROC_NAME}_{current_timestamp}.csv"
-    
+
     try:
         # Upload the DataFrame to GCS using a URL like gs://<bucket_name>/<file_path>/<file_name>
         data.to_csv(f"gs://{LANDING_BUCKET}/{file_path}/{file_name}", index=False)
@@ -168,15 +167,14 @@ def store_func_state(table_id, state_json):
     """
     # Prepare the data to be inserted into the BigQuery table
     rows_to_insert = [state_json]
-    
+
     errors = bq_client.insert_rows_json(table_id, rows_to_insert)
-    
+
     # Check if there are any errors during insertion
     if not errors:
         print("New rows have been added.")
     else:
         print(f"Insert errors: {errors}")
-
 
 
 @functions_framework.http
