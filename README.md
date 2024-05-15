@@ -435,6 +435,7 @@ The SQL scripts housed in the [analytical_queries](./analyze/analytical_queries.
 Here is a dashboard that we developed based on the queries accessible in the [analytical_queries](./analyze/analytical_queries.sql). Superset was leveraged because of it's advanced visualizations, ease of use, better flexibility over Looker, and seamless installation in our local and compute environments.
 
 ![Alt text](./data-fusion-dashboard.jpg)
+[Link to Dashboard as PDF](./data_fusion_dashboard.pdf)
 
 ## Key Takeaways
 
