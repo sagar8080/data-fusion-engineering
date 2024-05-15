@@ -101,43 +101,6 @@ chmod +x setup.sh
 - Removes configuration files from ingest location for security.
 - Persists Terraform variables in the bash environment.
 
-**Cleanup Bytecode Files:**
-- Removes Python bytecode files (`pycache` and `.pyc`) to keep workspace clean.
-
-**Continuous Integration and Continuous Deployment (CI/CD):**
-- The process can be integrated into a CI/CD pipeline to trigger automatic re-deployments upon updates to the codebase.
-
-**Screenshots:**
-
-![Setup process](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/6657d1d9-9637-4208-b0a7-4f42c87a5025)
-|:--:|
-| The infrastructure automation done using the `setup.sh` script |
-
-![Python Dependencies on Local](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/50161218-3ae1-4421-a33e-01a83f68fe0b)
-|:--:|
-| It fullfills the standard system dependencies required to run the modules |
-
-![Cloud Function Creation](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/adc1054c-1d98-49e8-a39e-3ac705bface9)
-|:--:|
-| Cloud Functions Creation |
-
-![Cloud Function Setup](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/9f5cba9d-5423-4b93-b8ab-8332665620f1)
-|:--:|
-| Cloud Functions Fully Set Up |
-
-![Cloud Scheduler Setup](./screenshots/cloud_scheduler.png)
-|:--:|
-| Cloud Schedulers are up as well |
-
-![code_bucket](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/93015060-fd38-40fe-9d3a-81a1b37a543d)
-|:--:|
-| Code Bucket Creation |
-
-![code_bucket_contents](./screenshots/code_bucket.png)
-|:--:|
-| Code Bucket Contents |
-
-* `Note`: Other GCP infrastructure can also be automated using Terraform but we thought it would be better to create it manually so that we don't forget to shut it down.
 
 ## Ingest
 

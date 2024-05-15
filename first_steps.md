@@ -3,9 +3,20 @@
 ## 1. Install WSL and Ubuntu 20.04 on a Windows Machine
 
 ### Step 1: Enable WSL Feature
-- Open PowerShell as Administrator.
-- Run the following command: `dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart`
 
+- Open PowerShell as Administrator.
+- Run the following command:
+
+```
+wsl --install
+
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+
+wsl --set-default-version 2
+```
+- For a more detailed answer you can follow this [LINK](https://learn.microsoft.com/en-us/windows/wsl/install)
 
 ### Step 2: Install Ubuntu 20.04 from Microsoft Store
 - Open Microsoft Store.
