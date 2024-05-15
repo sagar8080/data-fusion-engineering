@@ -49,7 +49,7 @@ The interplay between weather conditions, traffic patterns, and taxi usage plays
 - TLC trip data - https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page
 
 ## Data Architecture
-![Alt text](./architecture_diagram.svg)
+![Alt text](./data_fusion_architecture.svg)
 
 1. **Data Ingestion via Cloud Functions**:
    - **Triggering Cloud Functions**: Leveraging *event-driven architecture* and *serverless computing*, Cloud Functions are scheduled by Cloud Scheduler to fetch data from various external APIs (e.g., Weather Data, Crashes Data, Persons Data, Vehicles Data, Taxi Data, Traffic Data).
