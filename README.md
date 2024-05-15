@@ -186,7 +186,7 @@ Data from all sources is transformed into a cohesive data model using DataProc a
 
 ### Load Functionality: 
 
-Example: **[crashes_data](./load/load_crashes_data_pyspark.py)** | Reamining scripts can be found **[here](./load/)**
+Example: **[crashes_data](./load/load_crashes_data_pyspark.py)** | Remaining scripts can be found **[here](./load/)**
 
 **1. Configurable Data Ingestion:**
    - The script utilizes `argparse` to accept command-line parameters, allowing the configuration of batch sizes and file prefix paths for selective data processing. 
