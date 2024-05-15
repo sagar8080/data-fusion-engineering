@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE `data-fusion-419214.df_prd.df_unified_crashes_model` AS
+CREATE OR REPLACE TABLE `df_prd.df_unified_crashes_model` AS
 WITH standardized_crashes AS (
     SELECT *,
         CASE
@@ -9,7 +9,7 @@ WITH standardized_crashes AS (
             WHEN LOWER(borough) IN ('staten island', 'richmond', 'richmond county') THEN 'Staten Island'
             ELSE borough
         END AS standardized_borough
-    FROM `data-fusion-419214.df_prd.df_crashes_data_prd`
+    FROM `df_prd.df_crashes_data_prd`
 )
 SELECT
     c.*,
@@ -32,9 +32,9 @@ SELECT
     p.contributing_factor_2 AS person_contributing_factor_2,
     p.person_sex
 FROM standardized_crashes c
-INNER JOIN `data-fusion-419214.df_prd.df_vehicles_data_prd` v 
+INNER JOIN `df_prd.df_vehicles_data_prd` v 
     ON c.collision_id = v.collision_id
-INNER JOIN `data-fusion-419214.df_prd.df_persons_data_prd` p 
+INNER JOIN `df_prd.df_persons_data_prd` p 
     ON c.collision_id = p.collision_id
 
 -- Create a View for Combined Crashes Model + Weather Data
