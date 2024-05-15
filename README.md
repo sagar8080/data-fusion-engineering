@@ -305,3 +305,28 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 ![Alt text](./data-fusion-dashboard.jpg)
 
 ## Key Takeaways
+
+- **BigQuery**: Enabled powerful and scalable analytics on large datasets. Also, seamlessly allowed us to perform direct load operations for some of the datasets, saving time.
+- **Cloud Storage**: Provided secure and durable storage for our data without incurring a lot of cost.
+- **DataProc**: Facilitated efficient data processing with SPARK and also provided a JUPYTERLAB interface to perform some quick testing off the shelf.
+- **Cloud Functions**: Managed serverless operations helped us to extract data from the APIs as quickly as possible.
+- **Cloud Schedulers**: Automated our cloud functions to run once every hour on weekdays between 9 to 5.
+
+- **Opting for Simplicity in Scheduling**: Initially, we considered using Cloud Composer to orchestrate raw and prod loading. However, we realized that for our project's scale and complexity, Shell Scripts and Crontabs provided a more straightforward and equally effective solution. This approach allowed for precise control and scheduling flexibility without the overhead of managing an additional orchestration tool.
+
+- **Intelligent Data Batching**: To manage system resources efficiently and avoid overloading, we implemented intelligent data batching in chunks of 2-3 GB. This strategy ensured smooth and uninterrupted data processing.
+
+- **Choosing PySpark Over BEAM**: We opted for PySpark over BEAM due to its superior in-memory processing speed, which significantly boosted our data handling capabilities, especially when processing large JSON files. BEAM could be a better option if we intended to use a streaming data source, but for batch workloads, SPARK reigns supreme.
+
+- **Data Cataloging Improvement**: We noticed frequent timeouts with traffic data despite a 600-second timeout limit. This was due to inefficient paging and fetching offsets from the API. By modifying our ingestion code to fetch data based on timestamps (30-40 days at a time), we improved our system's performance and successfully fetched high volumes of data. Here are the stats for our processes:
+
+  1. `ingest-traffic-data`: 95.71 seconds
+  2. `ingest-vehicles-data`: 51.30 seconds
+  3. `ingest-persons-data`: 28.48 seconds
+  4. `ingest-crashes-data`: 8.55 seconds
+  5. `ingest-taxi-data`: 6.22 seconds
+  6. `ingest-weather-data`: 3.31 seconds
+
+- **Holistic Data Integration**: By integrating diverse datasets — weather, traffic, taxi, and crash data — we were able to gain comprehensive insights into the factors influencing road safety in NYC. This integration helped us uncover important trends and correlations.
+
+- **Insightful Visualizations with Dynamic Dashboards**: We leveraged Superset to create dynamic dashboards primarily due to its ease of features and quick integration with Bigquery. This allowed us to build a pretty dashboard for our MBA friends to get wowed about.
