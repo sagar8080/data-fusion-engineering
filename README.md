@@ -227,6 +227,18 @@ Data from all sources is transformed into a cohesive data model using DataProc a
 
 We use BigQuery as our primary storage technology, chosen for its seamless integration with DataProc and excellent support for SQL queries on large datasets. The database is structured to logically represent our data model, with separate tables for each data source that relate to one another through shared keys.
 
+1. **Data Structure Design**: The data within BigQuery is organized logically to represent the data model effectively. Each data source, such as crashes, traffic, persons, taxis, and vehicles, has separate tables which are further categorized as follows:
+
+   **Landing Zone (Pre-Processed)**: 
+   Initial raw data from various sources is stored directly as it is ingested. This includes separate folders for each type of data (e.g., crashes, persons, traffic) with a daily partitioning scheme, as seen with folders dated by each day (e.g., 2024-05-08, 2024-05-07, etc.). Data is segmented into daily batches within the 'df_raw' bucket, allowing for effective date-based management and querying.
+
+   **Processed Data Zone**:
+   After initial ingestion and any required preprocessing, data is moved to the 'df_prod' bucket, where it is ready for use in production environments. This processed data is still categorized by data type but optimized for performance and query efficiency. This data is further used for detailed analytics.
+
+2. **Data Catalog**: Maintaining a process catalog (df_process_catalog) helps in managing metadata and ensuring that data governance and lineage are traceable.
+
+3. **Automation & Scripting**: Automated scripts facilitate the data migration from the landing zone to the raw and processed zones as needed. Additionally, Python scripts automate direct data loading into BigQuery for weather, vehicles, and persons data, while PySpark scripts handle datatype casting. For traffic data, initially received in JSON format and requiring extra processing, we evaluated both Apache Beam and Apache Spark, ultimately choosing Spark as the more suitable solution for our needs.
+
 ![pre-processed to processed](https://github.com/sagar8080/data-fusion-engineering/assets/74659975/ee6be573-b3d8-4170-a580-3815afd4a3c3)
 |:--:|
 | Data Storage from Landing Zone (Pre-Processed) to Raw Zone (Processed) |
