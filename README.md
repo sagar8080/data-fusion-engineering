@@ -249,50 +249,81 @@ We use BigQuery as our primary storage technology, chosen for its seamless integ
 
 ## Analysis
 
-- **Weather Statistics of NYC**
-  - Analyzes weather statistics across different boroughs in NYC from 2009 - 2024
+### Combined Data Model
 
-- **Fatality in High Impact Crashes**
-  - Examines the frequency and distribution of fatalities in high impact crashes across different boroughs from 2016 to 2024.
+- The `df_unified_crashes_model` table aggregates crash data, persons data, and vehicles data into a unified schema.
+- This includes specific transformations for data normalization and consolidation.
 
-- **Vehicles Involved in a Crash Year Over Year (YOY)**
-  - Tracks the number of vehicles involved in crashes on a yearly basis.
+### Data Standardization
+- In constructing the df_unified_crashes_model, we have created a robust data model that integrates and standardizes various datasets to provide a comprehensive view of vehicle crashes across New York City. 
 
-- **Fatal Crashes in Weather Conditions**
-  - Analyzes the distribution of fatal crashes under different weather conditions.
+- This model standardizes borough names to ensure consistency across datasets, facilitating accurate city-wide analyses.  
 
-- **Body Injury and Status Post Crash**
-  - Investigates the relationship between bodily injuries, emotional statuses, and age categories of individuals involved in crashes.
+- Furthermore, the creation of additional views linking this unified crashes model to weather, traffic, and taxi data extends its utility, enabling complex queries that can assess the impact of environmental and traffic conditions on crash events. 
 
-- **High Yielding Factors of Crashes**
-  - Identifies the most common contributing factors leading to crashes.
+----
 
-- **Number of Persons Killed YoY**
-  - Calculates the year-over-year count of persons killed in crashes across different boroughs.
+### In-Depth Analytics Performed
 
-- **Occurrence of High Impact Crashes**
-  - Tracks the monthly occurrence of high impact crashes from 2016 to 2024.
+#### Weather Statistics of NYC
+- **Question:** What are the average weather conditions in each borough of NYC between 2009 and 2024?
+- **Answer:** The top section of the dashboard provides weather statistics across different boroughs, including temperature range, snowfall, rainfall, and humidity for the specified period.
 
-- **Number of Persons Injured**
-  - Computes the monthly count of persons injured in crashes from 2012 to 2024.
+#### Fatality in High Impact Crashes
+- **Question:** How has the fatality rate in high impact crashes varied across different boroughs from 2016 to 2024?
+- **Answer:** The line graph under the "Fatality in High Impact Crashes" section shows a trend of fatalities in high impact crashes across various boroughs, indicating a general decrease over the years.
 
-- **Contributing Factor for Crashes while Turning**
-  - Identifies the number of crashes occurring while making various types of turns.
+#### Vehicles Involved in a Crash Year Over Year (YOY)
+- **Question:** What is the year-over-year change in the number of vehicles involved in crashes?
+- **Answer:** The "Number of Persons Killed YoY" graph also shows the number of vehicles involved in crashes, with a trend line illustrating yearly variations.
 
-- **Categorizing Persons Involved in Crashes**
-  - Categorizes individuals involved in crashes by their person type and age category.
+#### Fatal Crashes in Weather Conditions
+- **Question:** How do weather conditions like rain, snow, and fog correlate with the incidence of fatal crashes?
+- **Answer:** The colorful donut chart titled "Fatal Crashes in Weather Conditions" visually represents the correlation between different weather conditions and fatal crashes.
 
-- **Analyzing Traffic Speeds in NYC on Weekdays and Weekends**
-  - Analyzes traffic speed patterns in NYC.
+#### Body Injury and Status Post Crash
+- **Question:** What patterns exist between the type of bodily injuries, emotional status, and age groups of crash victims?
+- **Answer:** The network graph titled "Body Injury and Status Post Crash" visualizes the relationships between bodily injuries, emotional statuses, and age categories of individuals involved in crashes.
 
-- **Trend of High Impact Crashes YoY**
-  - Examines the yearly trend of high impact crashes across different boroughs.
+#### High Yielding Factors of Crashes
+- **Question:** What are the top five contributing factors to crashes in the past five years?
+- **Answer:** The diagram lists "High Yielding Factors of Crashes" like aggressive driving, failure to yield right-of-way, and driver inattention/distraction, showing their relative frequencies.
 
-- **Understanding Pre Crash Condition and Vehicle Damage Afterwards**
-  - Explores the relationship between pre-crash conditions and the extent of vehicle damage post-crash.
+#### Number of Persons Killed YoY
+- **Question:** What is the trend in the number of persons killed in vehicle crashes from year to year in each borough?
+- **Answer:** The green line graph displays the year-over-year count of persons killed in crashes across different boroughs, showing a slight increase in recent months.
 
-- **State-wise Distribution of Crashes**
-  - Analyzes the distribution of high impact crashes based on the state of vehicle registration from 2023 to 2024.
+#### Occurrence of High Impact Crashes
+- **Question:** How does the monthly occurrence of high impact crashes fluctuate from 2016 to 2024?
+- **Answer:** A significant numeric display indicates "46 high impact crashes in May 2024," noting a dramatic 94.6% decrease over the past 12 months.
+
+#### Number of Persons Injured
+- **Question:** What is the monthly trend in the number of persons injured in crashes from 2012 to 2024?
+- **Answer:** A similar green line graph to the fatalities shows the monthly count of persons injured in crashes from 2012 to 2024, noting an 8.1% increase in the last 12 months.
+
+#### Contributing Factor for Crashes while Turning
+- **Question:** What are the most common contributing factors for crashes that occur during turning maneuvers?
+- **Answer:** The large number "47,557" under "High Impact Crashes While Turning" identifies the number of crashes that occurred during turning maneuvers.
+
+#### Categorizing Persons Involved in Crashes
+- **Question:** How are the demographics (such as age and person type) distributed among those involved in crashes?
+- **Answer:** A bar graph categorizes individuals involved in crashes by their person type and age category, highlighting predominant age groups and person types.
+
+#### Analyzing Traffic Speeds in NYC on Weekdays and Weekends
+- **Question:** What are the differences in average traffic speeds between weekdays and weekends in NYC?
+- **Answer:** The area graph titled "Traffic Speed in NYC on Weekdays and Weekends" analyzes differences in traffic speeds, clearly indicating variations between these times.
+
+#### Trend of High Impact Crashes YoY
+- **Question:** Is there a noticeable trend in high impact crashes year over year across different boroughs?
+- **Answer:** A graph shows the yearly trend of high impact crashes across different boroughs, with some peaks and valleys over the years.
+
+#### Understanding Pre Crash Condition and Vehicle Damage Afterwards
+- **Question:** Is there a correlation between pre-crash conditions and the severity of vehicle damage following a crash?
+- **Answer:** The circular network graph at the bottom of the dashboard could suggest the relationship between pre-crash conditions and the extent of vehicle damage following a crash.
+
+#### State-wise Distribution of Crashes
+- **Question:** How are high impact crashes distributed across different states based on vehicle registration from 2023 to 2024?
+- **Answer:** A pie chart shows the state-wise distribution of high impact crashes, focusing on the state of vehicle registration from 2023 to 2024.
 
 ## Management
 
