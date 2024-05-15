@@ -155,7 +155,7 @@ def create_tables(config):
     else:
         logger.warning(f"Failed to create TABLE: {catalog_table}")
 
-    for table_name in tables.items():
+    for table_name in tables:
         config["stage_tables"][table_name] = f"{config['stage_dataset']}.{table_name}"
         config["raw_tables"][table_name] = f"{config['raw_dataset']}.{table_name}"
         config["prod_tables"][table_name] = f"{config['prod_dataset']}.{table_name}"
