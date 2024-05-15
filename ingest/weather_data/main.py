@@ -8,7 +8,7 @@ import functions_framework
 from google.cloud import bigquery
 import json
 
-f= open("config.json", "r")
+f = open("config.json", "r")
 config = json.loads(f.read())
 LANDING_BUCKET = config["landing_bucket"]
 CATALOG_TABLE_ID = config["catalog_table"]
@@ -43,7 +43,9 @@ def get_dates(input_date):
     elif isinstance(input_date, datetime.datetime):
         start_date = input_date
     else:
-        raise TypeError("input_date must be either a string formatted as 'YYYY-MM-DD' or a datetime object")
+        raise TypeError(
+            "input_date must be either a string formatted as 'YYYY-MM-DD' or a datetime object"
+        )
     end_date = start_date + datetime.timedelta(days=DAY_DELTA)
     start_date_str = start_date.strftime("%Y-%m-%d")
     end_date_str = end_date.strftime("%Y-%m-%d")

@@ -12,7 +12,7 @@ bq_client = bigquery.Client()
 storage_client = storage.Client()
 f = open("config.json", "r")
 config = json.loads(f.read())
-DEFAULT_START_DATE = '2015-01-01T00:00:00'
+DEFAULT_START_DATE = "2015-01-01T00:00:00"
 PROCESS_NAME = "df-ingest-taxi-data"
 LANDING_BUCKET = config["landing_bucket"]
 CATALOG_TABLE_ID = config["catalog_table"]
@@ -48,14 +48,14 @@ def fetch_last_date(table_id):
     except Exception:
         # Return the default start date if any errors occur during data retrieval
         return DEFAULT_START_DATE
-    
+
 
 def get_start_end_date(input_date):
     """
     Calculate the start and end dates based on the input date.
 
     Parameters:
-    - input_date (str or datetime.datetime): The date from which to calculate the month period. 
+    - input_date (str or datetime.datetime): The date from which to calculate the month period.
 
     Returns:
     - tuple: A tuple containing two strings, the start date in "YYYY-MM" format and the end date in
@@ -68,7 +68,9 @@ def get_start_end_date(input_date):
     elif isinstance(input_date, datetime.datetime):
         start_date = input_date
     else:
-        raise ValueError("input_date must be a string in ISO format or a datetime.datetime object")
+        raise ValueError(
+            "input_date must be a string in ISO format or a datetime.datetime object"
+        )
 
     # Calculate the end_date by adding one month to the start_date
     end_date = start_date + relativedelta(months=+1)
@@ -102,12 +104,14 @@ def upload_to_gcs(file_url):
         response = requests.get(file_url, stream=True)
         if response.status_code == 200:
             # Extract the file name from the URL
-            file_name = file_url.split('/')[-1]
+            file_name = file_url.split("/")[-1]
             # Initialize the GCS bucket and blob object
             bucket = storage_client.bucket(LANDING_BUCKET)
             blob = bucket.blob(f"{file_path}/{file_name}")
             # Upload the file content as 'application/octet-stream'
-            blob.upload_from_string(response.content, content_type='application/octet-stream')
+            blob.upload_from_string(
+                response.content, content_type="application/octet-stream"
+            )
             print(f"File {file_name} uploaded successfully to GCS.")
         else:
             print(f"Failed to download the file. Status code: {response.status_code}")
