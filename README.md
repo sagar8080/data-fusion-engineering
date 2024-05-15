@@ -291,6 +291,18 @@ This step is handled by 2 shell scripts.
 **5. Detailed Logging and Output:**
    - Throughout the script, detailed logs are provided for each step, from cluster management to job submission.
 
+**Why did we choose to use a compute engine instead of dataflow workflow templates or cloud schedulers?**
+
+1. Compute Engine was more than just utilized to centrally manage and schedule cron jobs that automate the running of Dataproc clusters. 
+
+2. This setup streamlined the execution of batch processing and data transformation tasks, reducing the complexity of manually managing these operations and enhancing the efficiency of our data pipelines.
+
+2. The environment provided a stable and consistent platform that closely mimics the production environment of any organization leveraging GCP. This allowed us to simulate real-time testing and debugging of our data workflows, ensuring that any deployments to production would be as flawless as possible, thus minimizing runtime errors and downtime.
+
+3. By hosting Superset on Compute Engine, we leveraged its robust computational capabilities and network reliability to run our complex data visualizations and dashboards efficiently.
+
+4. Additionally it was cost-effective and cheaper to run and shutdown the engine on-demand
+
 `Note` - The screenshots below illustrate the cluster creation and job execution processes during some of our initial runs. These were a part of an experimental phase where we explored a menu-driven approach for our shell scripts. We aimed to demonstrate how this method aligns with our scheduled operations. Unfortunately, we had to repeat the ingestion process, which incurred additional costs. This necessity arose from our desire to refine the process to ensure optimal performance and cost-efficiency in a production environment.
 
 
