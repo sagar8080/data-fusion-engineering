@@ -1,5 +1,11 @@
 #!/bin/bash
 
+################################# TO SET THIS ON A SCHEDULE; DO THIS: ###################################
+#   crontab -e                                                                                          #
+#   * */11 * * *  -- Runs twice daily                                                                   #
+#########################################################################################################
+
+
 # Set environment variables
 CONFIG_PATH="utils/config.json"
 PROJECT_ID=$(gcloud config get-value project)
