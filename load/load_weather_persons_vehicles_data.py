@@ -1,4 +1,5 @@
 import json
+import datetime
 from argparse import ArgumentParser
 from google.cloud import bigquery
 
@@ -25,14 +26,48 @@ def load_data_to_bigquery(proc_name, landing_bucket, config):
         )
         load_job.result()
         destination_table = client.get_table(table_id)
-        print("Loaded {} rows.".format(destination_table.num_rows))
+        rows = int(destination_table.num_rows)
+        print("Loaded {} rows.".format(rows))
     except Exception as e:
         print(f"Error loading data to BigQuery: {e}")
+    finally:
+        return rows
+    
+    
+def store_func_state(bq_client, table_id, state_json):
+    rows_to_insert = [state_json]
+    errors = bq_client.insert_rows_json(table_id, rows_to_insert)
+    if not errors:
+        print("New rows have been added.")
+    else:
+        print("Encountered errors while inserting rows: {}".format(errors))
+    
 
 
-if __name__ == "__main__":    
-    args = parser.parse_args()
-    proc_name = args.proc_name
-    config = get_config()
-    landing_bucket = config.get("landing_bucket", None)
-    load_data_to_bigquery(proc_name, landing_bucket, config)
+if __name__ == "__main__":
+    start_timestamp = datetime.datetime.now()
+    state = "in-progress"
+    rows = 0
+    try:
+        args = parser.parse_args()
+        proc_name = args.proc_name
+        config = get_config()
+        landing_bucket = config.get("landing_bucket", None)
+        rows += load_data_to_bigquery(proc_name, landing_bucket, config)
+        state = "Success"
+    except Exception as e:
+        state = "Failure"
+    end_timestamp = datetime.datetime.now()
+    time_taken = end_timestamp - start_timestamp
+    function_state = {
+        "process_name": f"load-{proc_name}",
+        "process_status": state,
+        "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        "time_taken": round(time_taken.seconds, 3),
+        "rows_processed":  rows,
+        "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    CATALOG_TABLE_ID = config["catalog_table"]
+    store_func_state(client, CATALOG_TABLE_ID, function_state)
+    client.close()

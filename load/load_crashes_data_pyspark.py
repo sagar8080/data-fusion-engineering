@@ -1,7 +1,7 @@
 import json
 import datetime
 from argparse import ArgumentParser
-from google.cloud import storage
+from google.cloud import storage, bigquery
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when, to_timestamp
 
@@ -174,6 +174,15 @@ def write_data_to_bigquery(dataframe, table_name):
         .save()
 
 
+def store_func_state(bq_client, table_id, state_json):
+    rows_to_insert = [state_json]
+    errors = bq_client.insert_rows_json(table_id, rows_to_insert)
+    if not errors:
+        print("New rows have been added.")
+    else:
+        print("Encountered errors while inserting rows: {}".format(errors))
+
+
 def main(process_name, config, prefix, batch_size):
     """
     Main function to process files, transform data, and load it into BigQuery.
@@ -184,6 +193,7 @@ def main(process_name, config, prefix, batch_size):
         prefix (str): Prefix for filtering files.
         batch_size (int): Number of files to process in each batch.
     """
+    count = 0
     spark = create_spark_session(config)
     client = storage.Client()
     bucket_name = config["landing_bucket"]
@@ -193,25 +203,47 @@ def main(process_name, config, prefix, batch_size):
             batch_paths = [f"gs://{bucket_name}/{file_name}" for file_name in batch]
             print(f"Currently processing {process_name} and batch: {batch}")
             df = read_batch(spark, batch_paths)
-            df.show(10)
             processed_file_path = generate_file_path(bucket_name, process_name, "processed")
             df.coalesce(1).write.parquet(processed_file_path)
             table_name = config["raw_tables"][process_name]
             write_data_to_bigquery(df, table_name)
+            count += int(df.count())
             move_gcs_files(client, batch_paths, bucket_name)
     except Exception as e:
         print(f"Error processing {process_name}: {e}")
     finally:
         spark.stop()
+        return count
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    proc_name = "crashes_data"
-    batch_size = int(args.batch_size)   
-    prefix_path = args.prefix_path
-    if prefix_path.lower() == "all" or not prefix_path:
-        prefix_path = None
-    config = get_config()
-    main(proc_name, config, batch_size=batch_size, prefix=prefix_path)
+    start_timestamp = datetime.datetime.now()
+    bq_client = bigquery.Client()
+    state = "in-progress"
+    try:
+        args = parser.parse_args()
+        proc_name = "crashes-data"
+        batch_size = int(args.batch_size)   
+        prefix_path = args.prefix_path
+        if prefix_path.lower() == "all" or not prefix_path:
+            prefix_path = None
+        config = get_config()
+        count = main(proc_name, config, batch_size=batch_size, prefix=prefix_path)
+        state = "Success"
+    except Exception as e:
+        state = "Failure"
+    end_timestamp = datetime.datetime.now()
+    time_taken = end_timestamp - start_timestamp
+    function_state = {
+        "process_name": f"load-{proc_name}",
+        "process_status": state,
+        "process_start_time": start_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        "process_end_time": end_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        "time_taken": round(time_taken.seconds, 3),
+        "rows_processed":  count,
+        "insert_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    CATALOG_TABLE_ID = config["catalog_table"]
+    store_func_state(bq_client, CATALOG_TABLE_ID, function_state)
+    bq_client.close()
 
